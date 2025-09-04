@@ -1,0 +1,110 @@
+Date,Competitor,ProductID,ProductName,Price,OnPromotion
+2025-07-01,Competitor A,P001,Magnesium Citrate,115.99,FALSE
+2025-07-01,Competitor B,P001,Magnesium Citrate,118.50,FALSE
+2025-07-01,Competitor A,P039,La Roche-Posay Sunscreen,95.50,TRUE
+2025-07-01,Competitor B,P039,La Roche-Posay Sunscreen,99.99,FALSE
+2025-07-01,Competitor A,P041,Advil Tablets,24.99,FALSE
+2025-07-01,Competitor B,P041,Advil Tablets,23.50,TRUE
+2025-07-01,Competitor A,P038,Cetaphil Cleanser,75.00,FALSE
+2025-07-01,Competitor B,P038,Cetaphil Cleanser,78.00,FALSE
+2025-07-01,Competitor A,P020,Omega-3 Capsules,89.99,TRUE
+2025-07-01,Competitor B,P020,Omega-3 Capsules,92.50,FALSE
+2025-07-01,Competitor A,P002,Vitamin D3 5000IU,65.00,FALSE
+2025-07-01,Competitor B,P002,Vitamin D3 5000IU,64.99,TRUE
+2025-07-08,Competitor A,P001,Magnesium Citrate,115.99,FALSE
+2025-07-08,Competitor B,P001,Magnesium Citrate,112.99,TRUE
+2025-07-08,Competitor A,P039,La Roche-Posay Sunscreen,92.00,TRUE
+2025-07-08,Competitor B,P039,La Roche-Posay Sunscreen,99.99,FALSE
+2025-07-08,Competitor A,P041,Advil Tablets,24.99,FALSE
+2025-07-08,Competitor B,P041,Advil Tablets,23.50,TRUE
+2025-07-08,Competitor A,P038,Cetaphil Cleanser,75.00,FALSE
+2025-07-08,Competitor B,P038,Cetaphil Cleanser,72.50,TRUE
+2025-07-08,Competitor A,P020,Omega-3 Capsules,89.99,TRUE
+2025-07-08,Competitor B,P020,Omega-3 Capsules,92.50,FALSE
+2025-07-08,Competitor A,P002,Vitamin D3 5000IU,65.00,FALSE
+2025-07-08,Competitor B,P002,Vitamin D3 5000IU,62.00,TRUE
+2025-07-15,Competitor A,P001,Magnesium Citrate,110.00,TRUE
+2025-07-15,Competitor B,P001,Magnesium Citrate,112.99,TRUE
+2025-07-15,Competitor A,P039,La Roche-Posay Sunscreen,92.00,TRUE
+2025-07-15,Competitor B,P039,La Roche-Posay Sunscreen,91.50,TRUE
+2025-07-15,Competitor A,P041,Advil Tablets,22.99,TRUE
+2025-07-15,Competitor B,P041,Advil Tablets,23.50,TRUE
+2025-07-15,Competitor A,P038,Cetaphil Cleanser,75.00,FALSE
+2025-07-15,Competitor B,P038,Cetaphil Cleanser,72.50,TRUE
+2025-07-15,Competitor A,P020,Omega-3 Capsules,85.00,TRUE
+2025-07-15,Competitor B,P020,Omega-3 Capsules,88.50,TRUE
+2025-07-15,Competitor A,P002,Vitamin D3 5000IU,60.00,TRUE
+2025-07-15,Competitor B,P002,Vitamin D3 5000IU,62.00,TRUE
+2025-07-22,Competitor A,P001,Magnesium Citrate,116.50,FALSE
+2025-07-22,Competitor B,P001,Magnesium Citrate,119.00,FALSE
+2025-07-22,Competitor A,P039,La Roche-Posay Sunscreen,96.00,FALSE
+2025-07-22,Competitor B,P039,La Roche-Posay Sunscreen,98.99,FALSE
+2025-07-22,Competitor A,P041,Advil Tablets,25.50,FALSE
+2025-07-22,Competitor B,P041,Advil Tablets,24.00,FALSE
+2025-07-22,Competitor A,P038,Cetaphil Cleanser,76.00,FALSE
+2025-07-22,Competitor B,P038,Cetaphil Cleanser,78.00,FALSE
+2025-07-22,Competitor A,P020,Omega-3 Capsules,91.00,FALSE
+2025-07-22,Competitor B,P020,Omega-3 Capsules,93.00,FALSE
+2025-07-22,Competitor A,P002,Vitamin D3 5000IU,65.00,FALSE
+2025-07-22,Competitor B,P002,Vitamin D3 5000IU,65.00,FALSE
+2025-08-01,Competitor A,P001,Magnesium Citrate,116.50,FALSE
+2025-08-01,Competitor B,P001,Magnesium Citrate,113.99,TRUE
+2025-08-01,Competitor A,P039,La Roche-Posay Sunscreen,96.00,FALSE
+2025-08-01,Competitor B,P039,La Roche-Posay Sunscreen,98.99,FALSE
+2025-08-01,Competitor A,P041,Advil Tablets,25.50,FALSE
+2025-08-01,Competitor B,P041,Advil Tablets,22.00,TRUE
+2025-08-01,Competitor A,P038,Cetaphil Cleanser,76.00,FALSE
+2025-08-01,Competitor B,P038,Cetaphil Cleanser,78.00,FALSE
+2025-08-01,Competitor A,P020,Omega-3 Capsules,91.00,FALSE
+2025-08-01,Competitor B,P020,Omega-3 Capsules,90.00,TRUE
+2025-08-01,Competitor A,P002,Vitamin D3 5000IU,65.00,FALSE
+2025-08-01,Competitor B,P002,Vitamin D3 5000IU,65.00,FALSE
+2025-08-08,Competitor A,P001,Magnesium Citrate,116.50,FALSE
+2025-08-08,Competitor B,P001,Magnesium Citrate,113.99,TRUE
+2025-08-08,Competitor A,P039,La Roche-Posay Sunscreen,90.00,TRUE
+2025-08-08,Competitor B,P039,La Roche-Posay Sunscreen,92.00,TRUE
+2025-08-08,Competitor A,P041,Advil Tablets,25.50,FALSE
+2025-08-08,Competitor B,P041,Advil Tablets,22.00,TRUE
+2025-08-08,Competitor A,P038,Cetaphil Cleanser,70.00,TRUE
+2025-08-08,Competitor B,P038,Cetaphil Cleanser,71.50,TRUE
+2025-08-08,Competitor A,P020,Omega-3 Capsules,91.00,FALSE
+2025-08-08,Competitor B,P020,Omega-3 Capsules,90.00,TRUE
+2025-08-08,Competitor A,P002,Vitamin D3 5000IU,62.50,TRUE
+2025-08-08,Competitor B,P002,Vitamin D3 5000IU,63.00,TRUE
+2025-08-15,Competitor A,P001,Magnesium Citrate,117.00,FALSE
+2025-08-15,Competitor B,P001,Magnesium Citrate,119.50,FALSE
+2025-08-15,Competitor A,P039,La Roche-Posay Sunscreen,97.00,FALSE
+2025-08-15,Competitor B,P039,La Roche-Posay Sunscreen,99.00,FALSE
+2025-08-15,Competitor A,P041,Advil Tablets,26.00,FALSE
+2025-08-15,Competitor B,P041,Advil Tablets,25.00,FALSE
+2025-08-15,Competitor A,P038,Cetaphil Cleanser,77.00,FALSE
+2025-08-15,Competitor B,P038,Cetaphil Cleanser,78.50,FALSE
+2025-08-15,Competitor A,P020,Omega-3 Capsules,92.00,FALSE
+2025-08-15,Competitor B,P020,Omega-3 Capsules,94.00,FALSE
+2025-08-15,Competitor A,P002,Vitamin D3 5000IU,66.00,FALSE
+2025-08-15,Competitor B,P002,Vitamin D3 5000IU,65.50,FALSE
+2025-08-22,Competitor A,P001,Magnesium Citrate,117.00,FALSE
+2025-08-22,Competitor B,P001,Magnesium Citrate,114.50,TRUE
+2025-08-22,Competitor A,P039,La Roche-Posay Sunscreen,97.00,FALSE
+2025-08-22,Competitor B,P039,La Roche-Posay Sunscreen,93.00,TRUE
+2025-08-22,Competitor A,P041,Advil Tablets,26.00,FALSE
+2025-08-22,Competitor B,P041,Advil Tablets,25.00,FALSE
+2025-08-22,Competitor A,P038,Cetaphil Cleanser,77.00,FALSE
+2025-08-22,Competitor B,P038,Cetaphil Cleanser,78.50,FALSE
+2025-08-22,Competitor A,P020,Omega-3 Capsules,92.00,FALSE
+2025-08-22,Competitor B,P020,Omega-3 Capsules,89.00,TRUE
+2025-08-22,Competitor A,P002,Vitamin D3 5000IU,66.00,FALSE
+2025-08-22,Competitor B,P002,Vitamin D3 5000IU,65.50,FALSE
+2025-09-01,Competitor A,P001,Magnesium Citrate,118.00,FALSE
+2025-09-01,Competitor B,P001,Magnesium Citrate,120.00,FALSE
+2025-09-01,Competitor A,P039,La Roche-Posay Sunscreen,98.00,FALSE
+2025-09-01,Competitor B,P039,La Roche-Posay Sunscreen,100.00,FALSE
+2025-09-01,Competitor A,P041,Advil Tablets,27.00,FALSE
+2025-09-01,Competitor B,P041,Advil Tablets,26.00,FALSE
+2025-09-01,Competitor A,P038,Cetaphil Cleanser,78.00,FALSE
+2025-09-01,Competitor B,P038,Cetaphil Cleanser,79.00,FALSE
+2025-09-01,Competitor A,P020,Omega-3 Capsules,93.00,FALSE
+2025-09-01,Competitor B,P020,Omega-3 Capsules,95.00,FALSE
+2025-09-01,Competitor A,P002,Vitamin D3 5000IU,67.00,FALSE
+2025-09-01,Competitor B,P002,Vitamin D3 5000IU,66.00,FALSE
+
