@@ -1,23 +1,33 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# E-commerce Data Loader - V10.1 (Docker Networking)
+# E-commerce Data Loader - V12.0 (Secure Cloud Ready)
 #
-# This version updates the database connection string for consistency.
+# This version is optimized for cloud deployment. It automatically handles
+# SSL connections for secure cloud databases like Render.
 # -----------------------------------------------------------------------------
 
 import pandas
 from sqlalchemy import create_engine
 import sys
+import os
 
 # --- 1. DATABASE CONFIGURATION ---
-DB_NAME = 'pharma_db'
-DB_USER = 'mohamedyousri' # IMPORTANT: Change if your Mac username is different
-# --- Use Docker's special DNS name for consistency, works outside container too ---
-DB_HOST = 'host.docker.internal' 
-DB_CONNECTION_STRING = f"postgresql://{DB_USER}@{DB_HOST}:5432/{DB_NAME}"
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if not DATABASE_URL:
+    # Fallback for local development if the environment variable isn't set
+    print("DATABASE_URL not found. Falling back to local Docker connection.")
+    DB_NAME = 'pharma_db'
+    DB_USER = 'mohamedyousri'
+    DB_HOST = 'host.docker.internal'
+    DATABASE_URL = f"postgresql://{DB_USER}@{DB_HOST}:5432/{DB_NAME}"
+else:
+    # When connecting to a cloud provider, ensure SSL is used.
+    # Heroku and Render need this for external connections.
+    if "render.com" in DATABASE_URL or "heroku.com" in DATABASE_URL:
+        DATABASE_URL += "?sslmode=require"
 
 # --- 2. DEFINE DATA SCHEMAS AND FILE MAPPINGS ---
-# (The rest of the file is unchanged)
 SALES_SCHEMA = {
     'orderid': ['OrderID', 'Order ID', 'TransactionID'],
     'timestamp': ['Timestamp', 'DateTime', 'OrderDate'],
@@ -25,12 +35,11 @@ SALES_SCHEMA = {
     'productname': ['ProductName', 'Product Name'],
     'category': ['Category', 'ProductCategory'],
     'quantity': ['Quantity', 'Qty'],
-    'price': ['Price', 'UnitPrice'],
-    'city': ['City', 'LocationCity'],
-    'locationid': ['LocationID', 'StoreID'],
     'grossvalue': ['GrossValue', 'Gross Sale'],
     'discountvalue': ['DiscountValue', 'Discount'],
-    'customerid': ['CustomerID', 'Customer ID', 'UserID']
+    'customerid': ['CustomerID', 'Customer ID', 'UserID'],
+    'city': ['City', 'LocationCity'],
+    'locationid': ['LocationID', 'StoreID']
 }
 
 DELIVERY_SCHEMA = {
@@ -76,31 +85,27 @@ def normalize_headers(df, schema):
             if possible_name in df.columns:
                 header_map[possible_name] = clean_name
                 break 
-    
     df = df.rename(columns=header_map)
-    
     missing_cols = set(schema.keys()) - set(df.columns)
     if missing_cols:
-        print(f"  [WARNING] The file is missing the following required columns: {missing_cols}. They will be absent from the database.")
-        
+        print(f"  [WARNING] The file is missing required columns: {missing_cols}.")
     return df[[col for col in schema.keys() if col in df.columns]]
 
 def process_table(table_name, config, engine):
     print(f"\n--- Processing table: {table_name} ---")
     filepath = config['filepath']
     schema = config['schema']
-
     try:
         print(f"Reading from '{filepath}'...")
         df = pandas.read_csv(filepath)
     except FileNotFoundError:
-        print(f"  [ERROR] File not found: '{filepath}'. Please make sure it is in the same folder as the script.")
+        print(f"  [ERROR] File not found: '{filepath}'.")
         return
     except pandas.errors.EmptyDataError:
-        print(f"  [ERROR] The file '{filepath}' is empty. Please ensure it contains data.")
+        print(f"  [ERROR] The file '{filepath}' is empty.")
         return
     except Exception as e:
-        print(f"  [ERROR] An unexpected error occurred: {e}")
+        print(f"  [ERROR] An unexpected error occurred reading the file: {e}")
         return
 
     print("Normalizing column headers...")
@@ -108,9 +113,9 @@ def process_table(table_name, config, engine):
 
     if table_name == 'sales':
         if 'grossvalue' in df.columns and 'discountvalue' in df.columns:
+            df['grossvalue'] = pandas.to_numeric(df['grossvalue'], errors='coerce')
+            df['discountvalue'] = pandas.to_numeric(df['discountvalue'], errors='coerce')
             df['netsale'] = df['grossvalue'] - df['discountvalue']
-        else:
-            df['netsale'] = df['price'] * df['quantity']
             
     print(f"Loading {len(df)} rows into PostgreSQL table '{table_name}'...")
     try:
@@ -122,16 +127,15 @@ def process_table(table_name, config, engine):
 # --- 4. MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
     try:
-        engine = create_engine(DB_CONNECTION_STRING)
+        print(f"Attempting to connect to database...")
+        engine = create_engine(DATABASE_URL)
         with engine.connect() as connection:
             pass
+        print("Database connection successful.")
     except Exception as e:
-        print("--- DATABASE CONNECTION FAILED ---")
-        print(f"Could not connect to the PostgreSQL database '{DB_NAME}'.")
-        print("Please ensure that:")
-        print("1. Postgres.app is running on your Mac.")
-        print(f"2. A database named '{DB_NAME}' exists.")
-        print(f"3. The username in the script ('{DB_USER}') matches your Mac username.")
+        print("\n--- DATABASE CONNECTION FAILED ---")
+        print("Could not connect to the database. See error below:")
+        print(f"ERROR DETAILS: {e}")
         sys.exit(1)
 
     for table_name, config in TABLE_CONFIG.items():
