@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# E-commerce Data Analyst App - V12.0 (Deployment Ready)
+# E-commerce Data Analyst App - V12.1 (Final Deployment Fix)
 #
-# This version is prepared for cloud deployment. It reads the database
-# connection string from an environment variable for security and portability.
+# This version fixes a deployment error by robustly handling different
+# database URL formats from cloud providers.
 # -----------------------------------------------------------------------------
 
 # --- 1. IMPORT LIBRARIES ---
@@ -15,15 +15,19 @@ from dash import dcc, html, Input, Output
 from dash.exceptions import PreventUpdate
 from datetime import datetime
 from sqlalchemy import create_engine
-import os # NEW: To read environment variables
+import os
+import re # NEW: To perform advanced string replacement
 
 # --- 2. DATABASE CONNECTION ---
-# This logic now supports both local development and cloud deployment
+# This logic now robustly handles various cloud provider URL formats
 DATABASE_URL = os.environ.get('DATABASE_URL')
+
 if DATABASE_URL:
-    # In the cloud, Heroku provides a DATABASE_URL. It starts with 'postgres://'
-    # but SQLAlchemy needs 'postgresql://', so we replace it.
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    # --- FIX IS HERE ---
+    # Cloud providers might use 'postgres://' or even 'https://'.
+    # SQLAlchemy requires 'postgresql://'. We use a regular expression
+    # to replace the part before the '@' sign with the correct dialect.
+    DATABASE_URL = re.sub(r"^(postgres|https)://", "postgresql://", DATABASE_URL)
 else:
     # For local development (Docker)
     DB_NAME = 'pharma_db'
@@ -33,11 +37,10 @@ else:
 
 engine = create_engine(DATABASE_URL)
 
-
+# ... (The rest of the file is unchanged) ...
 # --- 3. LOAD AND PREPARE DATA ---
 try:
     print("Connecting to database and loading data...")
-    # (The rest of the file is unchanged, it will simply use the correct DATABASE_URL)
     sales_df = pandas.read_sql('SELECT * FROM sales', engine)
     sales_df.columns = [col.lower() for col in sales_df.columns]
     sales_df['timestamp'] = pandas.to_datetime(sales_df['timestamp'])
@@ -80,8 +83,6 @@ except Exception as e:
     print("\n--- DATABASE CONNECTION ERROR ---")
     print("Could not load data. The database might be unavailable or empty.")
     print(f"Error details: {e}")
-    # We don't exit here, to allow the app to at least start up
-    # Create empty dataframes as placeholders
     sales_df = pandas.DataFrame()
     delivery_df = pandas.DataFrame()
     customer_df = pandas.DataFrame()
@@ -91,13 +92,10 @@ except Exception as e:
 
 # --- 4. INITIALIZE THE APP ---
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SANDSTONE], suppress_callback_exceptions=True)
-server = app.server # Gunicorn needs this 'server' variable
+server = app.server
 
-# ... (The rest of the file, including layouts and callbacks, remains unchanged) ...
 # --- 5. DEFINE LAYOUTS AS FUNCTIONS ---
-
 def create_sales_layout():
-    # Defensive check in case data loading failed
     if sales_df.empty:
         return dbc.Alert("Sales data could not be loaded. Please run the data loader.", color="danger")
     return dbc.Container([
@@ -214,7 +212,7 @@ def create_competitor_layout():
 # ==== MAIN APP LAYOUT ====
 app.layout = dbc.Container([
     dcc.Download(id="download-dataframe-csv"),
-    html.H1("Pharma Analytics Hub - v12.0 (Live)", className='text-center text-primary mb-4'),
+    html.H1("Pharma Analytics Hub - v12.1 (Live)", className='text-center text-primary mb-4'),
     dbc.Tabs(id="tabs-controller", active_tab="sales-tab", children=[
         dbc.Tab(label="Sales Performance", tab_id="sales-tab"),
         dbc.Tab(label="Delivery Performance", tab_id="delivery-tab"),
@@ -225,20 +223,14 @@ app.layout = dbc.Container([
 ], fluid=True)
 
 # --- 6. DEFINE CALLBACKS ---
-
 @app.callback(Output('tab-content', 'children'), Input('tabs-controller', 'active_tab'))
 def render_tab_content(active_tab):
-    if sales_df.empty and active_tab != 'sales-tab': # If data loading failed, show error on all tabs
+    if sales_df.empty and active_tab != 'sales-tab':
         return dbc.Alert("Data could not be loaded. Please check the logs and run the data loader.", color="danger")
-
-    if active_tab == "sales-tab":
-        return create_sales_layout()
-    elif active_tab == "delivery-tab":
-        return create_delivery_layout()
-    elif active_tab == "customer-tab":
-        return create_customer_layout()
-    elif active_tab == "competitor-tab":
-        return create_competitor_layout()
+    if active_tab == "sales-tab": return create_sales_layout()
+    elif active_tab == "delivery-tab": return create_delivery_layout()
+    elif active_tab == "customer-tab": return create_customer_layout()
+    elif active_tab == "competitor-tab": return create_competitor_layout()
     return html.P("This tab doesn't exist.")
 
 @app.callback(
@@ -249,38 +241,21 @@ def render_tab_content(active_tab):
      Input('sales-date-picker', 'end_date')]
 )
 def update_sales_dashboard(selected_location, start_date, end_date):
-    if not start_date or not end_date or sales_df.empty:
-        raise PreventUpdate
-    
-    start_date_obj = pandas.to_datetime(start_date).date()
-    end_date_obj = pandas.to_datetime(end_date).date()
+    if not start_date or not end_date or sales_df.empty: raise PreventUpdate
+    start_date_obj, end_date_obj = pandas.to_datetime(start_date).date(), pandas.to_datetime(end_date).date()
     date_mask = (sales_df['date'] >= start_date_obj) & (sales_df['date'] <= end_date_obj)
-    
-    if selected_location != 'All':
-        loc_mask = sales_df['locationid'] == selected_location
-        combined_mask = date_mask & loc_mask
-    else:
-        combined_mask = date_mask
-        
-    filtered_df = sales_df.loc[combined_mask]
-
-    net_sales = filtered_df['netsale'].sum()
-    total_discount = filtered_df['discountvalue'].sum()
-    total_orders = filtered_df['orderid'].nunique()
-
+    loc_mask = sales_df['locationid'] == selected_location if selected_location != 'All' else True
+    filtered_df = sales_df.loc[date_mask & loc_mask]
+    net_sales, total_discount, total_orders = filtered_df['netsale'].sum(), filtered_df['discountvalue'].sum(), filtered_df['orderid'].nunique()
     kpi_netsales_card = dbc.CardBody([html.H4("Total Net Sales"), html.P(f"{net_sales:,.2f} SAR", className="fs-3")])
     kpi_discount_card = dbc.CardBody([html.H4("Total Discount"), html.P(f"{total_discount:,.2f} SAR", className="fs-3")])
     kpi_orders_card = dbc.CardBody([html.H4("Total Orders"), html.P(f"{total_orders:,}", className="fs-3")])
-
     daily_sales = filtered_df.groupby('date')['netsale'].sum().reset_index()
     sales_over_time_fig = px.line(daily_sales, x='date', y='netsale', title='Daily Net Sales')
-    
     category_sales = filtered_df.groupby('category')['netsale'].sum().reset_index()
     sales_by_cat_fig = px.pie(category_sales, names='category', values='netsale', title='Sales by Category', hole=0.3)
-    
     product_sales = filtered_df.groupby('productname')['netsale'].sum().nlargest(10).reset_index()
     top_prod_fig = px.bar(product_sales, x='netsale', y='productname', orientation='h', title='Top 10 Products by Net Sales').update_layout(yaxis={'categoryorder':'total ascending'})
-
     return kpi_netsales_card, kpi_discount_card, kpi_orders_card, sales_over_time_fig, sales_by_cat_fig, top_prod_fig
 
 @app.callback(
@@ -290,29 +265,20 @@ def update_sales_dashboard(selected_location, start_date, end_date):
     [Input('delivery-date-picker', 'start_date'), Input('delivery-date-picker', 'end_date')]
 )
 def update_delivery_dashboard(start_date, end_date):
-    if not start_date or not end_date or delivery_df.empty:
-        raise PreventUpdate
-
-    start_date_obj = pandas.to_datetime(start_date).date()
-    end_date_obj = pandas.to_datetime(end_date).date()
+    if not start_date or not end_date or delivery_df.empty: raise PreventUpdate
+    start_date_obj, end_date_obj = pandas.to_datetime(start_date).date(), pandas.to_datetime(end_date).date()
     mask = (delivery_df['date'] >= start_date_obj) & (delivery_df['date'] <= end_date_obj)
     filtered_df = delivery_df.loc[mask].copy()
-
     on_time_pct = (filtered_df['on_time'].sum() / len(filtered_df) * 100) if not filtered_df.empty else 0
-    avg_delivery_time = filtered_df['delivery_time_days'].mean()
-    total_deliveries = len(filtered_df)
-
+    avg_delivery_time, total_deliveries = filtered_df['delivery_time_days'].mean(), len(filtered_df)
     kpi_on_time_card = dbc.CardBody([html.H4("On-Time Delivery Rate"), html.P(f"{on_time_pct:.2f}%", className="fs-3")])
     kpi_avg_time_card = dbc.CardBody([html.H4("Avg. Delivery Time"), html.P(f"{avg_delivery_time:.2f} Days", className="fs-3")])
     kpi_total_del_card = dbc.CardBody([html.H4("Total Deliveries"), html.P(f"{total_deliveries:,}", className="fs-3")])
-
     status_counts = filtered_df['status'].value_counts().reset_index()
     status_chart_fig = px.pie(status_counts, names='status', values='count', title='Delivery Status Breakdown', hole=0.3)
-    
     partner_perf = filtered_df.groupby('deliverypartner')['on_time'].mean().reset_index()
-    partner_perf['on_time'] = partner_perf['on_time'] * 100
+    partner_perf['on_time'] *= 100
     partner_perf_chart_fig = px.bar(partner_perf.sort_values('on_time'), x='on_time', y='deliverypartner', orientation='h', title='On-Time Rate by Delivery Partner', labels={'on_time': 'On-Time %'})
-
     return kpi_on_time_card, kpi_avg_time_card, kpi_total_del_card, status_chart_fig, partner_perf_chart_fig
 
 @app.callback(
@@ -322,29 +288,21 @@ def update_delivery_dashboard(start_date, end_date):
     [Input('tabs-controller', 'active_tab')]
 )
 def update_customer_dashboard(active_tab):
-    if active_tab != 'customer-tab' or rfm_df.empty:
-        raise PreventUpdate
-
-    total_customers = customer_df['customerid'].nunique()
-    avg_clv = rfm_df['monetary'].mean()
+    if active_tab != 'customer-tab' or rfm_df.empty: raise PreventUpdate
+    total_customers, avg_clv = customer_df['customerid'].nunique(), rfm_df['monetary'].mean()
     new_customer_count = customer_df[customer_df['joindate'] > (datetime.now() - pandas.Timedelta(days=90))].shape[0]
-
     kpi_total_cust_card = dbc.CardBody([html.H4("Total Customers"), html.P(f"{total_customers:,}", className="fs-3")])
     kpi_clv_card = dbc.CardBody([html.H4("Avg. Customer Value"), html.P(f"{avg_clv:,.2f} SAR", className="fs-3")])
     kpi_new_cust_card = dbc.CardBody([html.H4("New Customers (90d)"), html.P(f"{new_customer_count:,}", className="fs-3")])
-
     rfm_fig = px.scatter(
         rfm_df, x='recency', y='frequency', size='monetary', color='segment',
         hover_name='customerid', size_max=60, title='RFM Customer Segmentation',
         labels={'recency': 'Recency (Days)', 'frequency': 'Frequency', 'segment': 'Segment'}
     ).update_layout(xaxis_autorange='reversed')
-
     sales_by_segment = rfm_df.groupby('segment')['monetary'].sum().reset_index()
     sales_by_segment_fig = px.bar(sales_by_segment, x='segment', y='monetary', title='Total Net Sales by Customer Segment', color='segment')
-    
     segment_dist = customer_df['segment'].value_counts().reset_index()
     segment_dist_fig = px.pie(segment_dist, names='segment', values='count', title='Customer Segment Distribution', hole=0.3)
-
     return kpi_total_cust_card, kpi_clv_card, kpi_new_cust_card, rfm_fig, sales_by_segment_fig, segment_dist_fig
 
 @app.callback(
@@ -353,27 +311,19 @@ def update_customer_dashboard(active_tab):
      Input('competitor-date-picker', 'end_date')]
 )
 def update_competitor_dashboard(selected_product, start_date, end_date):
-    if not selected_product or not start_date or not end_date or competitor_df.empty:
-        raise PreventUpdate
-    
-    start_date_obj = pandas.to_datetime(start_date)
-    end_date_obj = pandas.to_datetime(end_date)
-    
+    if not selected_product or not start_date or not end_date or competitor_df.empty: raise PreventUpdate
+    start_date_obj, end_date_obj = pandas.to_datetime(start_date), pandas.to_datetime(end_date)
     mask = (competitor_df['productname'] == selected_product) & \
            (competitor_df['date'] >= start_date_obj) & \
            (competitor_df['date'] <= end_date_obj)
-           
     filtered_df = competitor_df.loc[mask]
-
     price_trend_fig = px.line(filtered_df, x='date', y='price', color='competitor',
                               title=f'Price Trend for {selected_product}',
                               labels={'price': 'Price (SAR)', 'date': 'Date'})
-
     promo_activity = filtered_df.groupby('competitor')['onpromotion'].value_counts(normalize=True).unstack().fillna(0) * 100
     promo_activity.rename(columns={True:'On Promotion', False:'Not on Promotion'}, inplace=True)
     promo_fig = px.bar(promo_activity, barmode='stack', title=f'Promotional Activity for {selected_product}',
                        labels={'value': '% of Time', 'competitor': 'Competitor'})
-
     return price_trend_fig, promo_fig
 
 @app.callback(
@@ -382,14 +332,11 @@ def update_competitor_dashboard(selected_product, start_date, end_date):
     prevent_initial_call=True,
 )
 def export_customer_data(n_clicks):
-    if n_clicks is None or rfm_df.empty:
-        raise PreventUpdate
+    if n_clicks is None or rfm_df.empty: raise PreventUpdate
     return dcc.send_data_frame(rfm_df.to_csv, "customer_segments.csv", index=False)
-
 
 # --- 7. RUN THE APP ---
 if __name__ == '__main__':
-    # Use the PORT environment variable if it exists (for Heroku)
     port = int(os.environ.get('PORT', 8050))
     app.run(host='0.0.0.0', port=port, debug=False)
 

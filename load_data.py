@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# E-commerce Data Loader - V12.0 (Secure Cloud Ready)
+# E-commerce Data Loader - V12.1 (Final Deployment Fix)
 #
-# This version is optimized for cloud deployment. It automatically handles
-# SSL connections for secure cloud databases like Render.
+# This version robustly handles different database URL formats.
 # -----------------------------------------------------------------------------
 
 import pandas
 from sqlalchemy import create_engine
 import sys
 import os
+import re # NEW: To perform advanced string replacement
 
 # --- 1. DATABASE CONFIGURATION ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -22,10 +22,15 @@ if not DATABASE_URL:
     DB_HOST = 'host.docker.internal'
     DATABASE_URL = f"postgresql://{DB_USER}@{DB_HOST}:5432/{DB_NAME}"
 else:
+    # --- FIX IS HERE ---
+    # Cloud providers might use 'postgres://' or even 'https://'.
+    # SQLAlchemy requires 'postgresql://'. We use a regular expression
+    # to replace the part before the '@' sign with the correct dialect.
+    DATABASE_URL = re.sub(r"^(postgres|https)://", "postgresql://", DATABASE_URL)
     # When connecting to a cloud provider, ensure SSL is used.
-    # Heroku and Render need this for external connections.
     if "render.com" in DATABASE_URL or "heroku.com" in DATABASE_URL:
-        DATABASE_URL += "?sslmode=require"
+        if "?sslmode=require" not in DATABASE_URL:
+             DATABASE_URL += "?sslmode=require"
 
 # --- 2. DEFINE DATA SCHEMAS AND FILE MAPPINGS ---
 SALES_SCHEMA = {
@@ -41,7 +46,7 @@ SALES_SCHEMA = {
     'city': ['City', 'LocationCity'],
     'locationid': ['LocationID', 'StoreID']
 }
-
+# ... (rest of schemas are unchanged)
 DELIVERY_SCHEMA = {
     'deliveryid': ['DeliveryID', 'ShipmentID'],
     'orderid': ['OrderID', 'Order ID'],
@@ -77,7 +82,6 @@ TABLE_CONFIG = {
 }
 
 # --- 3. DATA PROCESSING FUNCTIONS ---
-
 def normalize_headers(df, schema):
     header_map = {}
     for clean_name, possible_names in schema.items():
