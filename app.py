@@ -125,38 +125,50 @@ if not sales_df.empty and not marketing_campaigns_df.empty and not marketing_att
     campaign_performance_df['roas'] = campaign_performance_df.apply(lambda r: r['netsale']/r['totalcost'] if r['totalcost']>0 else 0, axis=1)
     campaign_performance_df['cpa'] = campaign_performance_df.apply(lambda r: r['totalcost']/r['conversions'] if r['conversions']>0 else 0, axis=1)
     campaign_performance_df['ctr'] = campaign_performance_df.apply(lambda r: (r['clicks']/r['impressions'])*100 if r['impressions']>0 else 0, axis=1)
+
 import pandas as pd
 
 # --- Load CSVs ---
-sales_df = pd.read_csv('sales_data.csv')
-delivery_df = pd.read_csv('delivery_data.csv')
+sales_df = pd.read_csv('sales.csv')
+delivery_df = pd.read_csv('delivery.csv')
+marketing_attribution_df = pd.read_csv('marketing.csv')
 
-# --- Normalize column names to lowercase to avoid KeyError ---
+# --- Normalize all column names to lowercase ---
 sales_df.columns = sales_df.columns.str.lower()
 delivery_df.columns = delivery_df.columns.str.lower()
+marketing_attribution_df.columns = marketing_attribution_df.columns.str.lower()
 
-# --- Convert dates in delivery_df ---
+# --- Process delivery_df ---
 if not delivery_df.empty:
     delivery_df['orderdate'] = pd.to_datetime(delivery_df['orderdate'], errors='coerce')
     delivery_df['date'] = delivery_df['orderdate'].dt.date
     delivery_df['actualdeliverydate'] = pd.to_datetime(delivery_df['actualdeliverydate'], errors='coerce')
     delivery_df['promiseddate'] = pd.to_datetime(delivery_df['promiseddate'], errors='coerce')
 
-    # --- Calculate derived columns ---
     if 'actualdeliverydate' in delivery_df.columns and 'orderdate' in delivery_df.columns:
         delivery_df['delivery_time_days'] = (delivery_df['actualdeliverydate'] - delivery_df['orderdate']).dt.days
     if 'actualdeliverydate' in delivery_df.columns and 'promiseddate' in delivery_df.columns:
         delivery_df['on_time'] = delivery_df['actualdeliverydate'] <= delivery_df['promiseddate']
 
-# --- Ensure 'deliverycost' exists ---
-if 'deliverycost' not in delivery_df.columns:
-    delivery_df['deliverycost'] = 0  # or np.nan if preferred
+    if 'deliverycost' not in delivery_df.columns:
+        delivery_df['deliverycost'] = 0
 
-# --- Merge safely on lowercase 'orderid' ---
+# --- Merge sales + delivery ---
 profit_df = pd.merge(
-    sales_df, 
-    delivery_df[['orderid', 'deliverycost']], 
-    on='orderid', 
+    sales_df,
+    delivery_df[['orderid', 'deliverycost']],
+    on='orderid',
+    how='left'
+)
+
+# --- Merge with marketing attribution safely ---
+if 'orderid' not in marketing_attribution_df.columns:
+    raise KeyError("marketing_attribution_df does not contain 'orderid' column!")
+
+profit_df = pd.merge(
+    profit_df,
+    marketing_attribution_df,
+    on='orderid',
     how='left'
 )
 # Profitability Analysis
