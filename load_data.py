@@ -82,6 +82,15 @@ def bootstrap_database(engine):
         file_path = os.path.join(base_dir, config['filename'])
         try:
             df = pandas.read_csv(file_path)
+
+            # 🧹 Clean the column names to avoid hidden errors
+            df.columns = (
+                df.columns
+                .str.strip()                            # remove spaces
+                .str.lower()                            # lowercase
+                .str.replace('\ufeff', '', regex=True)  # remove hidden BOM chars
+            )
+
             df = normalize_headers(df, config['schema'])
             
             # Add calculated columns after cleaning headers
