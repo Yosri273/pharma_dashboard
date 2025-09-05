@@ -90,9 +90,6 @@ if not delivery_df.empty:
         delivery_df['delivery_time_days'] = (delivery_df['actualdeliverydate'] - delivery_df['orderdate']).dt.days
     if 'actualdeliverydate' in delivery_df.columns and 'promiseddate' in delivery_df.columns:
         delivery_df['on_time'] = delivery_df['actualdeliverydate'] <= delivery_df['promiseddate']
-    # Ensure OrderID is properly named for merge
-    delivery_df.rename(columns={'OrderID': 'orderid'}, inplace=True)
-    delivery_df.rename(columns={'deliverycost': 'deliverycost'}, inplace=True)  # consistent casing
 
 
 # Customer Segmentation
@@ -141,12 +138,7 @@ if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, ma
         campaign_costs['marketing_cost_per_order'] = campaign_costs.apply(lambda r: r['totalcost']/r['orders_in_campaign'] if pandas.notna(r['orders_in_campaign']) and r['orders_in_campaign']>0 else 0, axis=1)
         profit_df = pandas.merge(profit_df, campaign_costs[['campaignid', 'marketing_cost_per_order']], on='campaignid', how='left')
     else: profit_df['marketing_cost_per_order'] = 0
-    # --- FIX: Replaced inplace=True to prevent FutureWarning ---
-    profit_df['deliverycost'] = profit_df['deliverycost'].fillna(delivery_df['deliverycost'].mean())
-    profit_df['marketing_cost_per_order'] = profit_df['marketing_cost_per_order'].fillna(0)
-    profit_df['total_cost'] = profit_df['costofgoodssold'] + profit_df['deliverycost'] + profit_df['marketing_cost_per_order']
-    profit_df['net_profit'] = profit_df['netsale'] - profit_df['total_cost']
-    profit_df['profit_margin'] = profit_df.apply(lambda r: (r['net_profit']/r['netsale'])*100 if r['netsale']>0 else 0, axis=1)
+
 
 # Competitor Price Comparison
 if not competitor_df.empty and not sales_df.empty:
