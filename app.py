@@ -126,29 +126,6 @@ if not sales_df.empty and not marketing_campaigns_df.empty and not marketing_att
     campaign_performance_df['cpa'] = campaign_performance_df.apply(lambda r: r['totalcost']/r['conversions'] if r['conversions']>0 else 0, axis=1)
     campaign_performance_df['ctr'] = campaign_performance_df.apply(lambda r: (r['clicks']/r['impressions'])*100 if r['impressions']>0 else 0, axis=1)
 
-# Ensure 'deliverycost' exists in delivery_df
-if 'deliverycost' not in delivery_df.columns:
-    # Try alternative spellings / hidden characters
-    for col in delivery_df.columns:
-        if 'deliverycost' in col.lower():
-            delivery_df['deliverycost'] = delivery_df[col]
-            break
-    else:
-        # If not found at all, create a placeholder column to avoid crash
-        delivery_df['deliverycost'] = 0.0
-
-# Ensure 'orderid' exists in delivery_df
-if 'orderid' not in profit_df.columns:
-    # Try alternative spellings / hidden characters
-    for col in profit_df.columns:
-        if 'orderid' in col.lower():
-            profit_df['orderid'] = profit_df[col]
-            break
-    else:
-        # If not found at all, create a placeholder column to avoid crash
-        profit_df['orderid'] = 0.0
-
-# Now the merge will work
 # Profitability Analysis
 if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, marketing_attribution_df]):
     profit_df = pandas.merge(sales_df, delivery_df[['orderid', 'deliverycost']], on='orderid', how='left')
