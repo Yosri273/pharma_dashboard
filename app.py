@@ -125,7 +125,38 @@ if not sales_df.empty and not marketing_campaigns_df.empty and not marketing_att
     campaign_performance_df['roas'] = campaign_performance_df.apply(lambda r: r['netsale']/r['totalcost'] if r['totalcost']>0 else 0, axis=1)
     campaign_performance_df['cpa'] = campaign_performance_df.apply(lambda r: r['totalcost']/r['conversions'] if r['conversions']>0 else 0, axis=1)
     campaign_performance_df['ctr'] = campaign_performance_df.apply(lambda r: (r['clicks']/r['impressions'])*100 if r['impressions']>0 else 0, axis=1)
+import pandas as pd
 
+# --- Load CSV ---
+delivery_df = pd.read_csv('delivery.csv')
+
+# --- Normalize column names to lowercase ---
+delivery_df.columns = delivery_df.columns.str.lower()
+
+# --- Convert dates ---
+if not delivery_df.empty:
+    delivery_df['orderdate'] = pd.to_datetime(delivery_df['orderdate'], errors='coerce')
+    delivery_df['date'] = delivery_df['orderdate'].dt.date
+    delivery_df['actualdeliverydate'] = pd.to_datetime(delivery_df['actualdeliverydate'], errors='coerce')
+    delivery_df['promiseddate'] = pd.to_datetime(delivery_df['promiseddate'], errors='coerce')
+    
+    # --- Calculate derived columns ---
+    if 'actualdeliverydate' in delivery_df.columns and 'orderdate' in delivery_df.columns:
+        delivery_df['delivery_time_days'] = (delivery_df['actualdeliverydate'] - delivery_df['orderdate']).dt.days
+    if 'actualdeliverydate' in delivery_df.columns and 'promiseddate' in delivery_df.columns:
+        delivery_df['on_time'] = delivery_df['actualdeliverydate'] <= delivery_df['promiseddate']
+
+# --- Ensure 'deliverycost' exists ---
+if 'deliverycost' not in delivery_df.columns:
+    delivery_df['deliverycost'] = 0  # or np.nan if you prefer
+
+# --- Merge with sales_df ---
+profit_df = pd.merge(
+    sales_df, 
+    delivery_df[['orderid', 'deliverycost']], 
+    on='orderid', 
+    how='left'
+)
 # Profitability Analysis
 if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, marketing_attribution_df]):
     profit_df = pandas.merge(sales_df, delivery_df[['orderid', 'deliverycost']], on='orderid', how='left')
@@ -138,7 +169,12 @@ if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, ma
         campaign_costs['marketing_cost_per_order'] = campaign_costs.apply(lambda r: r['totalcost']/r['orders_in_campaign'] if pandas.notna(r['orders_in_campaign']) and r['orders_in_campaign']>0 else 0, axis=1)
         profit_df = pandas.merge(profit_df, campaign_costs[['campaignid', 'marketing_cost_per_order']], on='campaignid', how='left')
     else: profit_df['marketing_cost_per_order'] = 0
-
+    # --- FIX: Replaced inplace=True to prevent FutureWarning ---
+    profit_df['deliverycost'] = profit_df['deliverycost'].fillna(delivery_df['deliverycost'].mean())
+    profit_df['marketing_cost_per_order'] = profit_df['marketing_cost_per_order'].fillna(0)
+    profit_df['total_cost'] = profit_df['costofgoodssold'] + profit_df['deliverycost'] + profit_df['marketing_cost_per_order']
+    profit_df['net_profit'] = profit_df['netsale'] - profit_df['total_cost']
+    profit_df['profit_margin'] = profit_df.apply(lambda r: (r['net_profit']/r['netsale'])*100 if r['netsale']>0 else 0, axis=1)
 
 # Competitor Price Comparison
 if not competitor_df.empty and not sales_df.empty:
