@@ -127,19 +127,21 @@ if not sales_df.empty and not marketing_campaigns_df.empty and not marketing_att
     campaign_performance_df['ctr'] = campaign_performance_df.apply(lambda r: (r['clicks']/r['impressions'])*100 if r['impressions']>0 else 0, axis=1)
 import pandas as pd
 
-# --- Load CSV ---
-delivery_df = pd.read_csv('delivery.csv')
+# --- Load CSVs ---
+sales_df = pd.read_csv('sales_data.csv')
+delivery_df = pd.read_csv('delivery_data.csv')
 
-# --- Normalize column names to lowercase ---
+# --- Normalize column names to lowercase to avoid KeyError ---
+sales_df.columns = sales_df.columns.str.lower()
 delivery_df.columns = delivery_df.columns.str.lower()
 
-# --- Convert dates ---
+# --- Convert dates in delivery_df ---
 if not delivery_df.empty:
     delivery_df['orderdate'] = pd.to_datetime(delivery_df['orderdate'], errors='coerce')
     delivery_df['date'] = delivery_df['orderdate'].dt.date
     delivery_df['actualdeliverydate'] = pd.to_datetime(delivery_df['actualdeliverydate'], errors='coerce')
     delivery_df['promiseddate'] = pd.to_datetime(delivery_df['promiseddate'], errors='coerce')
-    
+
     # --- Calculate derived columns ---
     if 'actualdeliverydate' in delivery_df.columns and 'orderdate' in delivery_df.columns:
         delivery_df['delivery_time_days'] = (delivery_df['actualdeliverydate'] - delivery_df['orderdate']).dt.days
@@ -148,9 +150,9 @@ if not delivery_df.empty:
 
 # --- Ensure 'deliverycost' exists ---
 if 'deliverycost' not in delivery_df.columns:
-    delivery_df['deliverycost'] = 0  # or np.nan if you prefer
+    delivery_df['deliverycost'] = 0  # or np.nan if preferred
 
-# --- Merge with sales_df ---
+# --- Merge safely on lowercase 'orderid' ---
 profit_df = pd.merge(
     sales_df, 
     delivery_df[['orderid', 'deliverycost']], 
