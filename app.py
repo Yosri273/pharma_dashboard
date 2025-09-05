@@ -90,6 +90,9 @@ if not delivery_df.empty:
         delivery_df['delivery_time_days'] = (delivery_df['actualdeliverydate'] - delivery_df['orderdate']).dt.days
     if 'actualdeliverydate' in delivery_df.columns and 'promiseddate' in delivery_df.columns:
         delivery_df['on_time'] = delivery_df['actualdeliverydate'] <= delivery_df['promiseddate']
+    # Ensure OrderID is properly named for merge
+    delivery_df.rename(columns={'OrderID': 'orderid'}, inplace=True)
+    delivery_df.rename(columns={'deliverycost': 'deliverycost'}, inplace=True)  # consistent casing
 
 
 # Customer Segmentation
