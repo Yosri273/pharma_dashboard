@@ -126,38 +126,6 @@ if not sales_df.empty and not marketing_campaigns_df.empty and not marketing_att
     campaign_performance_df['cpa'] = campaign_performance_df.apply(lambda r: r['totalcost']/r['conversions'] if r['conversions']>0 else 0, axis=1)
     campaign_performance_df['ctr'] = campaign_performance_df.apply(lambda r: (r['clicks']/r['impressions'])*100 if r['impressions']>0 else 0, axis=1)
 
-import pandas as pd
-
-# --- Sales Data ---
-sales_columns = [
-    'orderid','timestamp','productid','productname','category','quantity',
-    'grossvalue','discountvalue','costofgoodssold','customerid','city',
-    'locationid','channel','orderstatus'
-]
-sales_df = pd.read_csv('sales_data.csv', usecols=sales_columns)
-sales_df.columns = [col.lower() for col in sales_df.columns]
-
-# --- Marketing Attribution ---
-marketing_columns = ['orderid','campaignid']
-marketing_attribution_df = pd.read_csv('marketing_attribution.csv', usecols=marketing_columns)
-marketing_attribution_df.columns = [col.lower() for col in marketing_attribution_df.columns]
-
-# --- Delivery Data ---
-delivery_columns = [
-    'deliveryid','orderid','orderdate','promiseddate','actualdeliverydate',
-    'status','deliverypartner','city','deliverycost'
-]
-delivery_df = pd.read_csv('delivery_data.csv', usecols=delivery_columns)
-delivery_df.columns = [col.lower() for col in delivery_df.columns]
-
-# --- Marketing Campaigns ---
-campaign_columns = [
-    'campaignid','campaignname','channel','startdate','enddate','totalcost','impressions','clicks'
-]
-marketing_campaigns_df = pd.read_csv('marketing_campaigns.csv', usecols=campaign_columns)
-marketing_campaigns_df.columns = [col.lower() for col in marketing_campaigns_df.columns]
-
-
 # Profitability Analysis
 if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, marketing_attribution_df]):
     profit_df = pandas.merge(sales_df, delivery_df[['orderid', 'deliverycost']], on='orderid', how='left')
