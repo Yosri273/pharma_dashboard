@@ -129,9 +129,9 @@ if not sales_df.empty and not marketing_campaigns_df.empty and not marketing_att
 import pandas as pd
 
 # --- Load CSVs ---
-sales_df = pd.read_csv('sales.csv')
-delivery_df = pd.read_csv('delivery.csv')
-marketing_attribution_df = pd.read_csv('marketing.csv')
+sales_df = pd.read_csv('sales_data.csv')
+delivery_df = pd.read_csv('delivery_data.csv')
+marketing_attribution_df = pd.read_csv('marketing_attribution.csv')
 
 # --- Normalize all column names to lowercase ---
 sales_df.columns = sales_df.columns.str.lower()
