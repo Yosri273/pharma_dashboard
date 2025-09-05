@@ -1,149 +1,130 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# E-commerce Data Loader - V12.1 (Final Deployment Fix)
+# E-commerce Data Processing Engine - V16.0 (with Marketing Data)
 #
-# This version robustly handles different database URL formats.
+# This version adds the ability to process and load marketing campaign and
+# attribution data, enabling a full-funnel view of performance.
 # -----------------------------------------------------------------------------
 
 import pandas
 from sqlalchemy import create_engine
 import sys
 import os
-import re # NEW: To perform advanced string replacement
+import re
 
 # --- 1. DATABASE CONFIGURATION ---
-DATABASE_URL = os.environ.get('DATABASE_URL')
+def get_database_url():
+    """Gets the correct database URL from environment variables or local fallback."""
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    if not DATABASE_URL:
+        print("DATABASE_URL not found. Falling back to local connection.")
+        DB_NAME = 'pharma_db'
+        DB_USER = 'mohamedyousri'
+        DB_HOST = 'localhost'
+        DATABASE_URL = f"postgresql://{DB_USER}@{DB_HOST}:5432/{DB_NAME}"
+    else:
+        DATABASE_URL = re.sub(r"^(postgres|https)://", "postgresql://", DATABASE_URL)
+        if "render.com" in DATABASE_URL and "?sslmode=require" not in DATABASE_URL:
+            DATABASE_URL += "?sslmode=require"
+    return DATABASE_URL
 
-if not DATABASE_URL:
-    # Fallback for local development if the environment variable isn't set
-    print("DATABASE_URL not found. Falling back to local Docker connection.")
-    DB_NAME = 'pharma_db'
-    DB_USER = 'mohamedyousri'
-    DB_HOST = 'host.docker.internal'
-    DATABASE_URL = f"postgresql://{DB_USER}@{DB_HOST}:5432/{DB_NAME}"
-else:
-    # --- FIX IS HERE ---
-    # Cloud providers might use 'postgres://' or even 'https://'.
-    # SQLAlchemy requires 'postgresql://'. We use a regular expression
-    # to replace the part before the '@' sign with the correct dialect.
-    DATABASE_URL = re.sub(r"^(postgres|https)://", "postgresql://", DATABASE_URL)
-    # When connecting to a cloud provider, ensure SSL is used.
-    if "render.com" in DATABASE_URL or "heroku.com" in DATABASE_URL:
-        if "?sslmode=require" not in DATABASE_URL:
-             DATABASE_URL += "?sslmode=require"
-
-# --- 2. DEFINE DATA SCHEMAS AND FILE MAPPINGS ---
+# --- 2. DEFINE DATA SCHEMAS ---
 SALES_SCHEMA = {
-    'orderid': ['OrderID', 'Order ID', 'TransactionID'],
-    'timestamp': ['Timestamp', 'DateTime', 'OrderDate'],
-    'productid': ['ProductID', 'Product ID', 'SKU'],
-    'productname': ['ProductName', 'Product Name'],
-    'category': ['Category', 'ProductCategory'],
-    'quantity': ['Quantity', 'Qty'],
-    'grossvalue': ['GrossValue', 'Gross Sale'],
-    'discountvalue': ['DiscountValue', 'Discount'],
-    'customerid': ['CustomerID', 'Customer ID', 'UserID'],
-    'city': ['City', 'LocationCity'],
-    'locationid': ['LocationID', 'StoreID']
+    'orderid': ['OrderID'], 'timestamp': ['Timestamp'], 'productid': ['ProductID'],
+    'productname': ['ProductName'], 'category': ['Category'], 'quantity': ['Quantity'],
+    'grossvalue': ['GrossValue'], 'discountvalue': ['DiscountValue'],
+    'costofgoodssold': ['CostOfGoodsSold'], 'customerid': ['CustomerID'], 'city': ['City'],
+    'locationid': ['LocationID'], 'channel': ['Channel'], 'orderstatus': ['OrderStatus']
 }
-# ... (rest of schemas are unchanged)
+FUNNEL_SCHEMA = { 'week': ['Week'], 'visits': ['Visits'], 'carts': ['Carts'], 'orders': ['Orders'] }
 DELIVERY_SCHEMA = {
-    'deliveryid': ['DeliveryID', 'ShipmentID'],
-    'orderid': ['OrderID', 'Order ID'],
-    'orderdate': ['OrderDate', 'DateOrdered'],
-    'promiseddate': ['PromisedDate', 'Promised Delivery Date'],
-    'actualdeliverydate': ['ActualDeliveryDate', 'DeliveredOn'],
-    'status': ['Status', 'DeliveryStatus'],
-    'deliverypartner': ['DeliveryPartner', 'Carrier'],
-    'city': ['City', 'DeliveryCity']
+    'deliveryid': ['DeliveryID'], 'orderid': ['OrderID'], 'orderdate': ['OrderDate'],
+    'promiseddate': ['PromisedDate'], 'actualdeliverydate': ['ActualDeliveryDate'],
+    'status': ['Status'], 'deliverypartner': ['DeliveryPartner'], 'city': ['City'],
+    'deliverycost': ['DeliveryCost']
 }
-
-CUSTOMER_SCHEMA = {
-    'customerid': ['CustomerID', 'Customer ID', 'UserID'],
-    'joindate': ['JoinDate', 'RegistrationDate'],
-    'city': ['City', 'CustomerCity'],
-    'segment': ['Segment', 'CustomerSegment']
+CUSTOMER_SCHEMA = { 'customerid': ['CustomerID'], 'joindate': ['JoinDate'], 'city': ['City'], 'segment': ['Segment'] }
+COMPETITOR_SCHEMA = { 'date': ['Date'], 'competitor': ['Competitor'], 'productid': ['ProductID'], 'productname': ['ProductName'], 'price': ['Price'], 'onpromotion': ['OnPromotion'] }
+# NEW SCHEMAS
+CAMPAIGN_SCHEMA = {
+    'campaignid': ['CampaignID'], 'campaignname': ['CampaignName'], 'channel': ['Channel'],
+    'startdate': ['StartDate'], 'enddate': ['EndDate'], 'totalcost': ['TotalCost'],
+    'impressions': ['Impressions'], 'clicks': ['Clicks']
 }
-
-COMPETITOR_SCHEMA = {
-    'date': ['Date', 'SnapshotDate'],
-    'competitor': ['Competitor', 'CompetitorName'],
-    'productid': ['ProductID', 'SKU'],
-    'productname': ['ProductName'],
-    'price': ['Price', 'CompetitorPrice'],
-    'onpromotion': ['OnPromotion', 'IsPromoted']
-}
+ATTRIBUTION_SCHEMA = { 'orderid': ['OrderID'], 'campaignid': ['CampaignID'] }
 
 TABLE_CONFIG = {
-    "sales": {"schema": SALES_SCHEMA, "filepath": "sales_data.csv"},
-    "deliveries": {"schema": DELIVERY_SCHEMA, "filepath": "delivery_data.csv"},
-    "customers": {"schema": CUSTOMER_SCHEMA, "filepath": "customer_data.csv"},
-    "competitors": {"schema": COMPETITOR_SCHEMA, "filepath": "competitor_data.csv"}
+    "sales": {"schema": SALES_SCHEMA, "filename": "sales_data.csv"},
+    "deliveries": {"schema": DELIVERY_SCHEMA, "filename": "delivery_data.csv"},
+    "customers": {"schema": CUSTOMER_SCHEMA, "filename": "customer_data.csv"},
+    "competitors": {"schema": COMPETITOR_SCHEMA, "filename": "competitor_data.csv"},
+    "sales_funnel": {"schema": FUNNEL_SCHEMA, "filename": "funnel_data.csv"},
+    "marketing_campaigns": {"schema": CAMPAIGN_SCHEMA, "filename": "marketing_campaigns.csv"}, # NEW
+    "marketing_attribution": {"schema": ATTRIBUTION_SCHEMA, "filename": "marketing_attribution.csv"} # NEW
 }
 
-# --- 3. DATA PROCESSING FUNCTIONS ---
+# --- 3. CORE LOGIC ---
 def normalize_headers(df, schema):
+    """Renames DataFrame columns to a clean, consistent format based on the schema."""
     header_map = {}
     for clean_name, possible_names in schema.items():
         for possible_name in possible_names:
             if possible_name in df.columns:
                 header_map[possible_name] = clean_name
-                break 
-    df = df.rename(columns=header_map)
-    missing_cols = set(schema.keys()) - set(df.columns)
-    if missing_cols:
-        print(f"  [WARNING] The file is missing required columns: {missing_cols}.")
-    return df[[col for col in schema.keys() if col in df.columns]]
+                break
+    return df.rename(columns=header_map)
 
-def process_table(table_name, config, engine):
-    print(f"\n--- Processing table: {table_name} ---")
-    filepath = config['filepath']
-    schema = config['schema']
-    try:
-        print(f"Reading from '{filepath}'...")
-        df = pandas.read_csv(filepath)
-    except FileNotFoundError:
-        print(f"  [ERROR] File not found: '{filepath}'.")
-        return
-    except pandas.errors.EmptyDataError:
-        print(f"  [ERROR] The file '{filepath}' is empty.")
-        return
-    except Exception as e:
-        print(f"  [ERROR] An unexpected error occurred reading the file: {e}")
-        return
-
-    print("Normalizing column headers...")
-    df = normalize_headers(df, schema)
-
-    if table_name == 'sales':
-        if 'grossvalue' in df.columns and 'discountvalue' in df.columns:
-            df['grossvalue'] = pandas.to_numeric(df['grossvalue'], errors='coerce')
-            df['discountvalue'] = pandas.to_numeric(df['discountvalue'], errors='coerce')
-            df['netsale'] = df['grossvalue'] - df['discountvalue']
+def bootstrap_database(engine):
+    """Loads all master CSV files from the main directory, completely replacing tables."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    for table_name, config in TABLE_CONFIG.items():
+        print(f"--- Bootstrapping table: {table_name} ---")
+        file_path = os.path.join(base_dir, config['filename'])
+        try:
+            df = pandas.read_csv(file_path)
+            df = normalize_headers(df, config['schema'])
             
-    print(f"Loading {len(df)} rows into PostgreSQL table '{table_name}'...")
-    try:
-        df.to_sql(table_name, engine, if_exists='replace', index=False)
-        print(f"  [SUCCESS] Table '{table_name}' loaded successfully.")
-    except Exception as e:
-        print(f"  [ERROR] Could not load data into PostgreSQL. Error: {e}")
+            # Add calculated columns after cleaning headers
+            if table_name == 'sales':
+                df['netsale'] = df['grossvalue'] - df['discountvalue']
+            
+            df.to_sql(table_name, engine, if_exists='replace', index=False)
+            print(f"  [SUCCESS] Table '{table_name}' created with {len(df)} rows.")
+        except FileNotFoundError:
+            print(f"  [ERROR] Master file not found: {config['filename']}. Skipping.")
+        except Exception as e:
+            print(f"  [ERROR] An unexpected error occurred while processing {config['filename']}: {e}")
+
+def process_incoming_file_and_append(filepath, engine):
+    """
+    Processes a single incoming file and appends it to the appropriate table.
+    This function is called by the scheduler.
+    """
+    # This is a placeholder for the logic handled by the scheduler script.
+    # In a more advanced architecture, this function would contain the logic
+    # to read a single file, determine its type, and append it to the DB.
+    print(f"Placeholder: Processing and appending file {filepath}")
+    pass
 
 # --- 4. MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
+    print("--- Running Database Bootstrap Tool ---")
+    print("This tool will completely rebuild all database tables from the master CSV files.")
+    
+    db_url = get_database_url()
     try:
-        print(f"Attempting to connect to database...")
-        engine = create_engine(DATABASE_URL)
+        engine = create_engine(db_url)
+        # Test the connection before proceeding
         with engine.connect() as connection:
-            pass
-        print("Database connection successful.")
+            print("Database connection successful.")
     except Exception as e:
-        print("\n--- DATABASE CONNECTION FAILED ---")
-        print("Could not connect to the database. See error below:")
-        print(f"ERROR DETAILS: {e}")
+        print(f"\n--- DATABASE CONNECTION FAILED ---")
+        print(f"Could not connect to the PostgreSQL database.")
+        print(f"Attempted URL: {db_url}")
+        print(f"Error details: {e}")
         sys.exit(1)
 
-    for table_name, config in TABLE_CONFIG.items():
-        process_table(table_name, config, engine)
-        
-    print("\n--- Data loading process finished ---")
+    bootstrap_database(engine)
+    
+    print("\n--- Database bootstrap process finished ---")
 
