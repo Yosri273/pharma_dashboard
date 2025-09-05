@@ -137,6 +137,17 @@ if 'deliverycost' not in delivery_df.columns:
         # If not found at all, create a placeholder column to avoid crash
         delivery_df['deliverycost'] = 0.0
 
+# Ensure 'orderid' exists in delivery_df
+if 'orderid' not in profit_df.columns:
+    # Try alternative spellings / hidden characters
+    for col in profit_df.columns:
+        if 'orderid' in col.lower():
+            profit_df['orderid'] = profit_df[col]
+            break
+    else:
+        # If not found at all, create a placeholder column to avoid crash
+        profit_df['orderid'] = 0.0
+
 # Now the merge will work
 # Profitability Analysis
 if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, marketing_attribution_df]):
