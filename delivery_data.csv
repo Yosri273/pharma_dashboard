@@ -1,4 +1,4 @@
-DeliveryID,OrderID,OrderDate,PromisedDate,ActualDeliveryDate,Status,DeliveryPartner,City,DeliveryCost
+DeliveryID,OrderID,OrderDate,PromisedDate,ActualDeliveryDate,Status,DeliveryPartner,City,deliverycost
 D001,ORD001,2025-01-15,2025-01-18,2025-01-17,Delivered,Aramex,Riyadh,15.00
 D002,ORD002,2025-01-17,2025-01-20,2025-01-19,Delivered,SMSA Express,Jeddah,18.00
 D003,ORD003,2025-01-18,2025-01-21,2025-01-21,Delivered,DHL,Dammam,20.00
