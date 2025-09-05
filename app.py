@@ -128,7 +128,7 @@ if not sales_df.empty and not marketing_campaigns_df.empty and not marketing_att
 
 # Profitability Analysis
 if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, marketing_attribution_df]):
-    profit_df = pandas.merge(sales_df, delivery_df[['orderid', 'delivery_cost']], on='orderid', how='left')
+    profit_df = pandas.merge(sales_df, delivery_df[['orderid', 'deliverycost']], on='orderid', how='left')
     profit_df = pandas.merge(profit_df, marketing_attribution_df, on='orderid', how='left')
     if not marketing_attribution_df.empty:
         campaign_costs = marketing_campaigns_df.copy()
