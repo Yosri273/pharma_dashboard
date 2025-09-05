@@ -128,49 +128,36 @@ if not sales_df.empty and not marketing_campaigns_df.empty and not marketing_att
 
 import pandas as pd
 
-# --- Load CSVs ---
-sales_df = pd.read_csv('sales_data.csv')
-delivery_df = pd.read_csv('delivery_data.csv')
-marketing_attribution_df = pd.read_csv('marketing_attribution.csv')
+# --- Sales Data ---
+sales_columns = [
+    'orderid','timestamp','productid','productname','category','quantity',
+    'grossvalue','discountvalue','costofgoodssold','customerid','city',
+    'locationid','channel','orderstatus'
+]
+sales_df = pd.read_csv('sales_data.csv', usecols=sales_columns)
+sales_df.columns = [col.lower() for col in sales_df.columns]
 
-# --- Normalize all column names to lowercase ---
-sales_df.columns = sales_df.columns.str.lower()
-delivery_df.columns = delivery_df.columns.str.lower()
-marketing_attribution_df.columns = marketing_attribution_df.columns.str.lower()
+# --- Marketing Attribution ---
+marketing_columns = ['orderid','campaignid']
+marketing_attribution_df = pd.read_csv('marketing_attribution.csv', usecols=marketing_columns)
+marketing_attribution_df.columns = [col.lower() for col in marketing_attribution_df.columns]
 
-# --- Process delivery_df ---
-if not delivery_df.empty:
-    delivery_df['orderdate'] = pd.to_datetime(delivery_df['orderdate'], errors='coerce')
-    delivery_df['date'] = delivery_df['orderdate'].dt.date
-    delivery_df['actualdeliverydate'] = pd.to_datetime(delivery_df['actualdeliverydate'], errors='coerce')
-    delivery_df['promiseddate'] = pd.to_datetime(delivery_df['promiseddate'], errors='coerce')
+# --- Delivery Data ---
+delivery_columns = [
+    'deliveryid','orderid','orderdate','promiseddate','actualdeliverydate',
+    'status','deliverypartner','city','deliverycost'
+]
+delivery_df = pd.read_csv('delivery_data.csv', usecols=delivery_columns)
+delivery_df.columns = [col.lower() for col in delivery_df.columns]
 
-    if 'actualdeliverydate' in delivery_df.columns and 'orderdate' in delivery_df.columns:
-        delivery_df['delivery_time_days'] = (delivery_df['actualdeliverydate'] - delivery_df['orderdate']).dt.days
-    if 'actualdeliverydate' in delivery_df.columns and 'promiseddate' in delivery_df.columns:
-        delivery_df['on_time'] = delivery_df['actualdeliverydate'] <= delivery_df['promiseddate']
+# --- Marketing Campaigns ---
+campaign_columns = [
+    'campaignid','campaignname','channel','startdate','enddate','totalcost','impressions','clicks'
+]
+marketing_campaigns_df = pd.read_csv('marketing_campaigns.csv', usecols=campaign_columns)
+marketing_campaigns_df.columns = [col.lower() for col in marketing_campaigns_df.columns]
 
-    if 'deliverycost' not in delivery_df.columns:
-        delivery_df['deliverycost'] = 0
 
-# --- Merge sales + delivery ---
-profit_df = pd.merge(
-    sales_df,
-    delivery_df[['orderid', 'deliverycost']],
-    on='orderid',
-    how='left'
-)
-
-# --- Merge with marketing attribution safely ---
-if 'orderid' not in marketing_attribution_df.columns:
-    raise KeyError("marketing_attribution_df does not contain 'orderid' column!")
-
-profit_df = pd.merge(
-    profit_df,
-    marketing_attribution_df,
-    on='orderid',
-    how='left'
-)
 # Profitability Analysis
 if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, marketing_attribution_df]):
     profit_df = pandas.merge(sales_df, delivery_df[['orderid', 'deliverycost']], on='orderid', how='left')
