@@ -79,37 +79,9 @@ def _enrich_delivery_data(df: pd.DataFrame) -> pd.DataFrame:
     df['on_time'] = df['actualdeliverydate'] <= df['promiseddate']
     return df
 
-def _calculate_price_comparison(sales_df: pd.DataFrame, competitor_df: pd.DataFrame) -> pd.DataFrame:
-    """Calculates our prices vs. average competitor prices for the Market Intel tab."""
-    logger.info("Calculating price comparison dataframe...")
-    if sales_df.empty or competitor_df.empty:
-        return pd.DataFrame()
 
-    our_price_agg = sales_df.groupby(['productid', 'productname']).agg(
-        total_netsale=('netsale', 'sum'),
-        total_qty=('quantity', 'sum')
-    ).reset_index()
     
     # --- FIX: Replaced safe_division with np.where for vectorized division ---
-    our_price_agg['our_price'] = np.where(
-        our_price_agg['total_qty'] == 0, 
-        0, 
-        our_price_agg['total_netsale'] / our_price_agg['total_qty']
-    )
-    
-    comp_price_agg = competitor_df.groupby(['productid', 'productname'])['price'].mean().reset_index()
-    comp_price_agg = comp_price_agg.rename(columns={'price': 'avg_competitor_price'})
-
-    price_comparison_df = pd.merge(
-        our_price_agg[['productid', 'productname', 'our_price']],
-        comp_price_agg,
-        on=['productid', 'productname'],
-        how='outer'
-    )
-    
-    price_comparison_df = price_comparison_df.fillna(0)
-    price_comparison_df['price_difference'] = price_comparison_df['our_price'] - price_comparison_df['avg_competitor_price']
-    return price_comparison_df
 
 def _calculate_campaign_performance(sales_df: pd.DataFrame, campaigns_df: pd.DataFrame, attribution_df: pd.DataFrame) -> pd.DataFrame:
     """Calculates ROAS and CPA for the Marketing tab."""
@@ -217,13 +189,6 @@ def initialize_data(engine: Engine) -> None:
     # Deliveries
     if 'deliveries' in DATA:
         DATA['deliveries'] = _enrich_delivery_data(DATA.get('deliveries', pd.DataFrame()))
-
-    # Market Intel
-    if 'sales' in DATA and 'competitors' in DATA:
-        DATA['price_comparison_df'] = _calculate_price_comparison(
-            DATA.get('sales', pd.DataFrame()),
-            DATA.get('competitors', pd.DataFrame())
-        )
 
     # Marketing
     if 'sales' in DATA and 'marketing_campaigns' in DATA and 'marketing_attribution' in DATA:

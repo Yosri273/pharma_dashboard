@@ -70,7 +70,6 @@ TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
     "sales": {"schema_norm": SALES_SCHEMA_NORM, "filename": "sales_data.csv", "file_prefix": "sales_"},
     "deliveries": {"schema_norm": DELIVERY_SCHEMA_NORM, "filename": "delivery_data.csv", "file_prefix": "delivery_"},
     "customers": {"schema_norm": CUSTOMER_SCHEMA_NORM, "filename": "customer_data.csv", "file_prefix": "customer_"},
-    "competitors": {"schema_norm": COMPETITOR_SCHEMA_NORM, "filename": "competitor_data.csv", "file_prefix": "competitor_"},
     "sales_funnel": {"schema_norm": FUNNEL_SCHEMA_NORM, "filename": "funnel_data.csv", "file_prefix": "funnel_"},
     "marketing_campaigns": {"schema_norm": CAMPAIGN_SCHEMA_NORM, "filename": "marketing_campaigns.csv", "file_prefix": "campaigns_"},
     "marketing_attribution": {"schema_norm": ATTRIBUTION_SCHEMA_NORM, "filename": "marketing_attribution.csv", "file_prefix": "attribution_"}

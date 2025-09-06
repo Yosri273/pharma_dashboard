@@ -204,7 +204,6 @@ def create_main_layout() -> html.Div:
                 dbc.Tab(label="Sales", tab_id="sales-tab"),
                 dbc.Tab(label="Logistics", tab_id="delivery-tab"),
                 dbc.Tab(label="Customers", tab_id="customer-tab"),
-                dbc.Tab(label="Market Intel", tab_id="competitor-tab"),
                 dbc.Tab(label="Marketing", tab_id="marketing-tab"),
                 dbc.Tab(label="Profit Optimization", tab_id="profit-tab"),
                 dbc.Tab(label="Predictive Insights", tab_id="predictive-tab"),
