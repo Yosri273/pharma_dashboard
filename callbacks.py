@@ -252,52 +252,75 @@ def register_callbacks(app):
 
     # --- OTHER DASHBOARD CALLBACKS ---
     @app.callback(
-        [Output('kpi-price-advantage', 'children'), Output('kpi-price-disadvantage', 'children'),
-         Output('kpi-promo-frequency', 'children'), Output('price-comparison-scatter-chart', 'figure'),
-         Output('promo-analysis-chart', 'figure'), Output('assortment-overlap-chart', 'figure')],
-        [Input('data-store-trigger', 'data'), Input('tabs-controller', 'active_tab')]
+    [Output('kpi-price-advantage', 'children'), Output('kpi-price-disadvantage', 'children'),
+     Output('kpi-promo-frequency', 'children'), Output('price-comparison-scatter-chart', 'figure'),
+     Output('promo-analysis-chart', 'figure'), Output('assortment-overlap-chart', 'figure')],
+    [Input('data-store-trigger', 'data'), Input('tabs-controller', 'active_tab')]
     )
     def update_competitor_dashboard(_, active_tab):
-        if active_tab != 'competitor-tab': raise PreventUpdate
-        price_comparison_df = DATA.get('price_comparison_df', pd.DataFrame())
-        competitor_df = DATA.get('competitors', pd.DataFrame())
-        sales_df = DATA.get('sales', pd.DataFrame())
-        if price_comparison_df.empty or competitor_df.empty or sales_df.empty:
-            placeholder = create_placeholder_figure("Data Not Available")
-            empty_kpi = create_kpi_body("No Data", "-")
-            return empty_kpi, empty_kpi, empty_kpi, placeholder, placeholder, placeholder
+        if active_tab != 'competitor-tab': 
+            raise PreventUpdate
+        
+    price_comparison_df = DATA.get('price_comparison_df', pd.DataFrame())
+    competitor_df = DATA.get('competitors', pd.DataFrame())
+    sales_df = DATA.get('sales', pd.DataFrame())
+    
+    if price_comparison_df.empty or competitor_df.empty or sales_df.empty:
+        placeholder = create_placeholder_figure("Data Not Available")
+        empty_kpi = create_kpi_body("No Data", "-")
+        return empty_kpi, empty_kpi, empty_kpi, placeholder, placeholder, placeholder
 
-        products_cheaper = price_comparison_df[price_comparison_df['price_difference'] < 0].shape[0]
-        products_pricier = price_comparison_df[price_comparison_df['price_difference'] > 0].shape[0]
-        promo_rate = (competitor_df['onpromotion'].sum() / len(competitor_df) * 100)
-        
-        kpi_advantage = create_kpi_body("Products We Undercut", f"{products_cheaper}")
-        kpi_disadvantage = create_kpi_body("Products More Expensive", f"{products_pricier}")
-        kpi_promo = create_kpi_body("Avg. Competitor Promo Rate", f"{promo_rate:.2f}%")
-        
-        price_comp_fig = px.scatter(price_comparison_df, x='our_price', y='avg_competitor_price', hover_name='productname', text='productname', size='price_difference', title='Our Price vs. Average Competitor Price')
-        price_comp_fig.add_shape(type='line', x0=0, y0=0, x1=price_comparison_df['our_price'].max(), y1=price_comparison_df['our_price'].max(), line=dict(color='red', dash='dash'))
-        
-        promo_freq = competitor_df.groupby('competitor')['onpromotion'].mean().reset_index()
-        promo_freq['onpromotion'] *= 100
-        promo_fig = px.bar(promo_freq, x='competitor', y='onpromotion', title='Promotion Frequency by Competitor')
-        
-        our_products = set(sales_df['productname'].unique())
-        nahdi_products = set(competitor_df[competitor_df['competitor'] == 'Nahdi']['productname'].unique())
-        dawaa_products = set(competitor_df[competitor_df['competitor'] == 'Al-Dawaa']['productname'].unique())
-        
-        venn_data = pd.DataFrame([
-            {'sets': ['Ours Only'], 'size': len(our_products - nahdi_products - dawaa_products)},
-            {'sets': ['Nahdi Only'], 'size': len(nahdi_products - our_products - dawaa_products)},
-            {'sets': ['Al-Dawaa Only'], 'size': len(dawaa_products - our_products - nahdi_products)},
-            {'sets': ['Ours & Nahdi'], 'size': len(our_products & nahdi_products - dawaa_products)},
-            {'sets': ['Ours & Al-Dawaa'], 'size': len(our_products & dawaa_products - nahdi_products)},
-            {'sets': ['Nahdi & Al-Dawaa'], 'size': len(nahdi_products & dawaa_products - our_products)},
-            {'sets': ['All Three'], 'size': len(our_products & nahdi_products & dawaa_products)},
-        ])
-        assortment_fig = px.bar(venn_data, x='size', y='sets', orientation='h', title='Product Assortment Overlap')
-        
-        return kpi_advantage, kpi_disadvantage, kpi_promo, price_comp_fig, promo_fig, assortment_fig
+    products_cheaper = price_comparison_df[price_comparison_df['price_difference'] < 0].shape[0]
+    products_pricier = price_comparison_df[price_comparison_df['price_difference'] > 0].shape[0]
+    promo_rate = (competitor_df['onpromotion'].sum() / len(competitor_df) * 100)
+    
+    kpi_advantage = create_kpi_body("Products We Undercut", f"{products_cheaper}")
+    kpi_disadvantage = create_kpi_body("Products More Expensive", f"{products_pricier}")
+    kpi_promo = create_kpi_body("Avg. Competitor Promo Rate", f"{promo_rate:.2f}%")
+
+    # --- START OF FIX ---
+    # We must use the ABSOLUTE value for 'size', as Plotly crashes on negative sizes.
+    # We will make a copy to avoid changing the global DATA dict.
+    plot_df = price_comparison_df.copy()
+    plot_df['size_magnitude'] = plot_df['price_difference'].abs()
+
+    price_comp_fig = px.scatter(
+        plot_df,  # Use the modified dataframe
+        x='our_price', 
+        y='avg_competitor_price', 
+        hover_name='productname',
+        text='productname',
+        size='size_magnitude',          # Use the new absolute value column for size
+        color='price_difference',     # Use the original column (with negatives) for color
+        color_continuous_scale='RdBu_r', # Red-Blue scale (Red=expensive, Blue=cheap)
+        title='Our Price vs. Average Competitor Price'
+    )
+    # --- END OF FIX ---
+    
+    price_comp_fig.add_shape(type='line', x0=0, y0=0, x1=price_comparison_df['our_price'].max(), y1=price_comparison_df['our_price'].max(), line=dict(color='red', dash='dash'))
+    
+    promo_freq = competitor_df.groupby('competitor')['onpromotion'].mean().reset_index()
+    promo_freq['onpromotion'] *= 100
+    promo_fig = px.bar(promo_freq, x='competitor', y='onpromotion', title='Promotion Frequency by Competitor')
+    
+    our_products = set(sales_df['productname'].unique())
+    nahdi_products = set(competitor_df[competitor_df['competitor'] == 'Nahdi']['productname'].unique())
+    dawaa_products = set(competitor_df[competitor_df['competitor'] == 'Al-Dawaa']['productname'].unique())
+    
+    # This is the corrected venn_data from the previous fix
+    venn_data = pd.DataFrame([
+        {'sets': 'Ours Only', 'size': len(our_products - nahdi_products - dawaa_products)},
+        {'sets': 'Nahdi Only', 'size': len(nahdi_products - our_products - dawaa_products)},
+        {'sets': 'Al-Dawaa Only', 'size': len(dawaa_products - our_products - nahdi_products)},
+        {'sets': 'Ours & Nahdi', 'size': len(our_products & nahdi_products - dawaa_products)},
+        {'sets': 'Ours & Al-Dawaa', 'size': len(our_products & dawaa_products - nahdi_products)},
+        {'sets': 'Nahdi & Al-Dawaa', 'size': len(nahdi_products & dawaa_products - our_products)},
+        {'sets': 'All Three', 'size': len(our_products & nahdi_products & dawaa_products)},
+    ])
+    
+    assortment_fig = px.bar(venn_data, x='size', y='sets', orientation='h', title='Product Assortment Overlap')
+    
+    return kpi_advantage, kpi_disadvantage, kpi_promo, price_comp_fig, promo_fig, assortment_fig
 
     @app.callback(
         [Output('kpi-total-ad-spend', 'children'), Output('kpi-avg-roas', 'children'),
