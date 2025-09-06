@@ -32,7 +32,7 @@ class Settings(BaseSettings):
         """Constructs the final database URL, applying necessary fixes."""
         if 'DATABASE_URL' in os.environ:
             db_url = os.environ['DATABASE_URL']
-            # FIX (D): Safely normalize postgres/postgresql prefixes
+            # Safely normalize postgres/postgresql prefixes
             db_url = re.sub(r'^postgres(?!\w)', 'postgresql', db_url)
             if "render.com" in db_url and "?sslmode=require" not in db_url:
                 db_url += "?sslmode=require"
@@ -77,6 +77,7 @@ TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
 }
 
 # Configure professional logging
+# This ensures that any module importing this config file will have logging available.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
 logger = logging.getLogger(__name__)
 logger.info(f"Configuration loaded. DB Target: {settings.DATABASE_URL.split('@')[-1]}")

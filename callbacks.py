@@ -250,6 +250,7 @@ def register_callbacks(app):
             
         raise PreventUpdate
 
+    # --- OTHER DASHBOARD CALLBACKS ---
     @app.callback(
         [Output('kpi-price-advantage', 'children'), Output('kpi-price-disadvantage', 'children'),
          Output('kpi-promo-frequency', 'children'), Output('price-comparison-scatter-chart', 'figure'),
@@ -285,8 +286,17 @@ def register_callbacks(app):
         nahdi_products = set(competitor_df[competitor_df['competitor'] == 'Nahdi']['productname'].unique())
         dawaa_products = set(competitor_df[competitor_df['competitor'] == 'Al-Dawaa']['productname'].unique())
         
-        assortment_fig = create_placeholder_figure("Venn Diagram Library Needed") # Placeholder
-
+        venn_data = pd.DataFrame([
+            {'sets': ['Ours Only'], 'size': len(our_products - nahdi_products - dawaa_products)},
+            {'sets': ['Nahdi Only'], 'size': len(nahdi_products - our_products - dawaa_products)},
+            {'sets': ['Al-Dawaa Only'], 'size': len(dawaa_products - our_products - nahdi_products)},
+            {'sets': ['Ours & Nahdi'], 'size': len(our_products & nahdi_products - dawaa_products)},
+            {'sets': ['Ours & Al-Dawaa'], 'size': len(our_products & dawaa_products - nahdi_products)},
+            {'sets': ['Nahdi & Al-Dawaa'], 'size': len(nahdi_products & dawaa_products - our_products)},
+            {'sets': ['All Three'], 'size': len(our_products & nahdi_products & dawaa_products)},
+        ])
+        assortment_fig = px.bar(venn_data, x='size', y='sets', orientation='h', title='Product Assortment Overlap')
+        
         return kpi_advantage, kpi_disadvantage, kpi_promo, price_comp_fig, promo_fig, assortment_fig
 
     @app.callback(

@@ -16,7 +16,7 @@ import logging
 from config import TABLE_CONFIG
 from database import get_engine
 
-# Configure logging for this script
+# Configure professional logging for this script
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,8 @@ def normalize_headers(df: pd.DataFrame, schema: dict) -> pd.DataFrame:
                 break
     
     df = df.rename(columns=header_map)
-    logging.debug(f"Normalized headers: {df.columns.tolist()}")
+    # This debug log is helpful for verifying header mapping
+    logging.debug(f"Normalized headers for {list(schema.keys())[0]}: {df.columns.tolist()}")
     return df
 
 def bootstrap_database(engine):

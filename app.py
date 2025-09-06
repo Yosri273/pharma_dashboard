@@ -42,5 +42,5 @@ logger.info("Application ready.")
 
 # --- 3. RUN THE APP ---
 if __name__ == '__main__':
-    app.run(debug=True, port=8051)
+    app.run(debug=True, port=8052)
 
