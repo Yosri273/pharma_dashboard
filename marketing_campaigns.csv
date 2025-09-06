@@ -1,6 +1,6 @@
-CampaignID,CampaignName,Channel,StartDate,EndDate,TotalCost,Impressions,Clicks
-CAMP01,Riyadh_Ramadan_Sale,Meta Ads,2025-03-01,2025-04-15,5000,150000,7500
-CAMP02,Jeddah_Wellness_Push,Google Ads,2025-04-10,2025-05-10,3500,120000,6000
-CAMP03,Dammam_Skincare_Promo,Meta Ads,2025-05-01,2025-06-01,4000,180000,9000
-CAMP04,Nationwide_Summer_Sale,Google Ads,2025-06-15,2025-07-15,7500,300000,15000
-CAMP05,Riyadh_Vitamin_Boost,Meta Ads,2025-07-20,2025-08-20,4500,200000,10000
+CampaignID,CampaignName,Channel,TotalCost,Impressions,Clicks,StartDate,EndDate
+CAMP001,Google Ads - Q4 Push,Google,15000,500000,25000,2024-09-01,2025-09-01
+CAMP002,Meta Ads - Ramadan,Meta,25000,800000,20000,2024-09-01,2025-09-01
+CAMP003,Snapchat - Wellness Promo,Snapchat,10000,1200000,30000,2024-09-01,2025-09-01
+CAMP004,Google Ads - Vitamins,Google,8000,300000,18000,2024-09-01,2025-09-01
+CAMP005,Meta Ads - Skincare,Meta,12000,600000,15000,2024-09-01,2025-09-01

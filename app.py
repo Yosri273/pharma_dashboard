@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# E-commerce Data Analyst App - V19.1 (Code Quality)
+# E-commerce Data Analyst App - V19.2 (Final Master Version)
 #
-# This version resolves the FutureWarning from pandas by updating the syntax
-# for fillna operations, ensuring future compatibility.
+# This is the final, stable, and feature-complete version of the application.
+# It includes fixes for all known bugs and a complete set of dashboards.
 # -----------------------------------------------------------------------------
 
 # --- 1. IMPORT LIBRARIES ---
@@ -55,6 +55,7 @@ def load_data_safely(table_name, engine):
         print(f"  [ERROR] Could not load table '{table_name}'. Error: {e}")
         return pandas.DataFrame()
 
+print("--- Pharma Analytics Hub v19.2 ---")
 print("Connecting to database and loading data...")
 sales_df = load_data_safely('sales', engine)
 delivery_df = load_data_safely('deliveries', engine)
@@ -65,16 +66,16 @@ funnel_df = load_data_safely('sales_funnel', engine)
 competitor_df = load_data_safely('competitors', engine)
 print("Data loading process finished.")
 
-
-# --- 4. MASTER DATA PREPARATION & MODEL PREDICTION ---
+# --- 4. MASTER DATA PREPARATION & ENRICHMENT ---
 
 # Initialize all analysis dataframes to be safe
 profit_df = pandas.DataFrame()
 customer_analysis_df = pandas.DataFrame()
 price_comparison_df = pandas.DataFrame()
 campaign_performance_df = pandas.DataFrame()
+predictions_df = pandas.DataFrame()
 
-# Base Data Type Conversion
+# Base Data Type Conversion and Enrichment
 if not sales_df.empty:
     sales_df['timestamp'] = pandas.to_datetime(sales_df['timestamp'])
     sales_df['date'] = sales_df['timestamp'].dt.date
@@ -90,7 +91,6 @@ if not delivery_df.empty:
         delivery_df['delivery_time_days'] = (delivery_df['actualdeliverydate'] - delivery_df['orderdate']).dt.days
     if 'actualdeliverydate' in delivery_df.columns and 'promiseddate' in delivery_df.columns:
         delivery_df['on_time'] = delivery_df['actualdeliverydate'] <= delivery_df['promiseddate']
-
 
 # Customer Segmentation
 if not sales_df.empty and not customer_df.empty:
@@ -138,7 +138,6 @@ if not all(df.empty for df in [sales_df, delivery_df, marketing_campaigns_df, ma
         campaign_costs['marketing_cost_per_order'] = campaign_costs.apply(lambda r: r['totalcost']/r['orders_in_campaign'] if pandas.notna(r['orders_in_campaign']) and r['orders_in_campaign']>0 else 0, axis=1)
         profit_df = pandas.merge(profit_df, campaign_costs[['campaignid', 'marketing_cost_per_order']], on='campaignid', how='left')
     else: profit_df['marketing_cost_per_order'] = 0
-    # --- FIX: Replaced inplace=True to prevent FutureWarning ---
     profit_df['deliverycost'] = profit_df['deliverycost'].fillna(delivery_df['deliverycost'].mean())
     profit_df['marketing_cost_per_order'] = profit_df['marketing_cost_per_order'].fillna(0)
     profit_df['total_cost'] = profit_df['costofgoodssold'] + profit_df['deliverycost'] + profit_df['marketing_cost_per_order']
@@ -153,11 +152,7 @@ if not competitor_df.empty and not sales_df.empty:
     price_comparison_df = pandas.merge(our_prices, competitor_avg_prices, on='productname', how='inner')
     price_comparison_df['price_difference'] = price_comparison_df['our_price'] - price_comparison_df['avg_competitor_price']
 
-
-# Load the trained model and scaler
-churn_model = None
-scaler = None
-predictions_df = pandas.DataFrame()
+# Load the trained model and scaler for churn prediction
 try:
     churn_model = joblib.load('churn_model.pkl')
     scaler = joblib.load('scaler.pkl')
@@ -165,33 +160,22 @@ try:
     
     if not sales_df.empty and not customer_df.empty:
         snapshot_date = sales_df['timestamp'].max() + timedelta(days=1)
-        
-        rfm_predict = sales_df.groupby('customerid').agg(
-            timestamp=('timestamp', 'max'),
-            orderid=('orderid', 'nunique'),
-            netsale=('netsale', 'sum')
-        ).rename(columns={'timestamp': 'Recency', 'orderid': 'Frequency', 'netsale': 'MonetaryValue'})
+        rfm_predict = sales_df.groupby('customerid').agg(timestamp=('timestamp', 'max'), orderid=('orderid', 'nunique'), netsale=('netsale', 'sum')).rename(columns={'timestamp': 'Recency', 'orderid': 'Frequency', 'netsale': 'MonetaryValue'}).reset_index()
         rfm_predict['Recency'] = (snapshot_date - rfm_predict['Recency']).dt.days
-
         customer_features_predict = sales_df.groupby('customerid').agg(avg_basket_value=('netsale', 'mean'), total_quantity=('quantity', 'sum')).reset_index()
         features_df_predict = rfm_predict.merge(customer_features_predict, on='customerid')
         features_df_predict = features_df_predict.merge(customer_df[['customerid', 'joindate', 'segment', 'city']], on='customerid')
         features_df_predict['tenure_days'] = (snapshot_date - features_df_predict['joindate']).dt.days
-        
         model_features = pandas.get_dummies(features_df_predict.drop(['customerid', 'joindate'], axis=1), columns=['segment'], drop_first=True)
         model_columns = ['Recency', 'Frequency', 'MonetaryValue', 'avg_basket_value', 'total_quantity', 'tenure_days', 'segment_Silver', 'segment_Gold']
         for col in model_columns:
-            if col not in model_features.columns:
-                model_features[col] = 0
+            if col not in model_features.columns: model_features[col] = 0
         model_features = model_features[model_columns]
-        
         features_scaled = scaler.transform(model_features)
         churn_probabilities = churn_model.predict_proba(features_scaled)[:, 1]
-        
         predictions_df = features_df_predict[['customerid', 'city', 'segment', 'Recency', 'Frequency', 'MonetaryValue']].copy()
         predictions_df['churn_probability'] = churn_probabilities
         predictions_df = predictions_df.sort_values('churn_probability', ascending=False)
-
 except FileNotFoundError:
     print("  [WARNING] 'churn_model.pkl' or 'scaler.pkl' not found. Predictive tab will be disabled.")
 except Exception as e:
@@ -345,7 +329,7 @@ def create_predictive_layout():
 
 app.layout = dbc.Container([
     dcc.Download(id="download-dataframe-csv"),
-    html.H1("Yosri Analytics Hub - v19.1", className='text-center text-primary mb-4'),
+    html.H1("Pharma Analytics Hub - v19.2 (Final Master)", className='text-center text-primary mb-4'),
     dbc.Tabs(id="tabs-controller", active_tab="predictive-tab", children=[
         dbc.Tab(label="Sales", tab_id="sales-tab"),
         dbc.Tab(label="Logistics", tab_id="delivery-tab"),
@@ -572,6 +556,28 @@ def update_profit_dashboard(active_tab):
     return kpi_profit_card, kpi_margin_card, kpi_returns_card, profit_by_channel_fig, profit_by_cat_fig, high_margin_fig, low_margin_fig, recommendation_list
 
 @app.callback(
+    [Output('kpi-high-risk-customers', 'children'), Output('kpi-med-risk-customers', 'children'),
+     Output('kpi-low-risk-customers', 'children'), Output('churn-risk-distribution-chart', 'figure')],
+    [Input('tabs-controller', 'active_tab')]
+)
+def update_predictive_dashboard(active_tab):
+    if active_tab != 'predictive-tab' or predictions_df.empty:
+        raise PreventUpdate
+
+    high_risk = predictions_df[predictions_df['churn_probability'] > 0.7].shape[0]
+    med_risk = predictions_df[(predictions_df['churn_probability'] > 0.4) & (predictions_df['churn_probability'] <= 0.7)].shape[0]
+    low_risk = predictions_df[predictions_df['churn_probability'] <= 0.4].shape[0]
+
+    kpi_high_card = dbc.CardBody([html.H4("High Risk (>70%)"), html.P(f"{high_risk:,}", className="fs-3")])
+    kpi_med_card = dbc.CardBody([html.H4("Medium Risk (40-70%)"), html.P(f"{med_risk:,}", className="fs-3")])
+    kpi_low_card = dbc.CardBody([html.H4("Low Risk (<40%)"), html.P(f"{low_risk:,}", className="fs-3")])
+
+    fig = px.histogram(predictions_df, x='churn_probability', nbins=50, title='Distribution of Customer Churn Risk')
+    fig.update_layout(xaxis_title='Predicted Churn Probability', yaxis_title='Number of Customers')
+
+    return kpi_high_card, kpi_med_card, kpi_low_card, fig
+
+@app.callback(
     Output("download-dataframe-csv", "data", allow_duplicate=True),
     [Input("export-csv-button", "n_clicks"), State("customer-list-selector", "value")],
     prevent_initial_call=True,
@@ -598,7 +604,8 @@ def export_churn_list(n_clicks):
     filename = f"high_churn_risk_customers_{datetime.now().strftime('%Y-%m-%d')}.csv"
     return dcc.send_data_frame(churn_list_df.to_csv, filename, index=False)
 
+
 # --- 8. RUN THE APP ---
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8051)
 

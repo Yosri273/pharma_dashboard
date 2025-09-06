@@ -84,11 +84,6 @@ def bootstrap_database(engine):
             df = pandas.read_csv(file_path)
             df = normalize_headers(df, config['schema'])
             
-            # PASTE THE DEBUG CODE HERE
-            # This line needs to be indented at the same level as the 'df' variable assignment
-            if table_name == 'delivery':
-                print(f"[DEBUG] Columns in the 'delivery' CSV are: {df.columns.tolist()}")
-
             # Add calculated columns after cleaning headers
             if table_name == 'sales':
                 df['netsale'] = df['grossvalue'] - df['discountvalue']
