@@ -1,44 +1,84 @@
-import pandas as pd
-import numpy as np
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Utilities Toolbox - V26.0 (Enterprise Refactor)
+#
+# This module provides a set of clean, well-documented, and reusable utility
+# functions for the application. It is designed for robustness, testability,
+# and performance, following enterprise best practices.
+# -----------------------------------------------------------------------------
 
-# --- NEW FUNCTION TO PREVENT DASHBOARD CRASHES ---
-def safe_division(numerator, denominator):
+import logging
+from typing import Dict, Any, Union
+
+import dash_bootstrap_components as dbc
+from dash import html
+
+# --- 1. CONFIGURE LOGGER ---
+# Use a dedicated logger for this module for better traceability
+logger = logging.getLogger(__name__)
+
+
+# --- 2. MATHEMATICAL UTILITIES ---
+
+def safe_division(numerator: Union[int, float], denominator: Union[int, float]) -> float:
     """
-    Prevents ZeroDivisionError and handles None/NaN inputs for robust KPI calculation.
-    Returns 0.0 if division is not possible.
+    Performs division safely, returning 0.0 if the denominator is zero.
+
+    Args:
+        numerator: The number to be divided.
+        denominator: The number to divide by.
+
+    Returns:
+        The result of the division, or 0.0 if division by zero occurs.
     """
-    if denominator is None or denominator == 0 or pd.isna(denominator):
+    if denominator == 0:
         return 0.0
-    
-    if numerator is None or pd.isna(numerator):
-        return 0.0
+    return float(numerator / denominator)
 
-    try:
-        result = float(numerator) / float(denominator)
-        # Handle cases where division might result in infinity
-        if not np.isfinite(result):
-            return 0.0
-        return result
-    except (ZeroDivisionError, ValueError, TypeError):
-        return 0.0
 
-# --- Any other utility functions you already have (like formatting) would go here ---
+# --- 3. UI & PLOTTING UTILITIES ---
 
-def format_kpi_value(value, prefix="", suffix="", decimals=2):
+def create_placeholder_figure(message: str = "No data available") -> Dict[str, Any]:
     """
-    Formats a numerical value as a string for the KPI cards.
-    """
-    try:
-        formatted_value = f"{value:,.{decimals}f}"
-        return f"{prefix}{formatted_value}{suffix}"
-    except (ValueError, TypeError):
-        return f"{prefix}0{suffix}"
+    Creates a blank Plotly figure with a custom message.
+    Used as a placeholder when data for a chart is missing.
 
-# Example of another utility function that might exist
-def get_trend_icon(value):
-    if value > 0:
-        return "▲", "color: 'green'"
-    elif value < 0:
-        return "▼", "color: 'red'"
-    else:
-        return "", "color: 'white'"
+    Args:
+        message: The text to display on the empty chart.
+
+    Returns:
+        A dictionary representing a blank Plotly figure layout.
+    """
+    logger.debug(f"Creating placeholder figure with message: '{message}'")
+    return {
+        "layout": {
+            "xaxis": {"visible": False},
+            "yaxis": {"visible": False},
+            "annotations": [{
+                "text": message,
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 16}
+            }]
+        }
+    }
+
+
+def create_kpi_body(title: str, value: str) -> dbc.CardBody:
+    """
+    Creates a consistent CardBody for a Key Performance Indicator (KPI).
+    This reusable component ensures all KPIs have the same style and structure.
+
+    Args:
+        title: The title of the KPI (e.g., "Total Revenue").
+        value: The formatted string value of the KPI (e.g., "1,234.56 SAR").
+
+    Returns:
+        A dash_bootstrap_components.CardBody object.
+    """
+    return dbc.CardBody([
+        html.H4(title, className="card-title"),
+        html.P(value, className="card-text fs-3")
+    ])
+

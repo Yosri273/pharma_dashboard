@@ -19,8 +19,7 @@ from datetime import datetime
 # Import from our central modules
 from data import DATA, initialize_data
 from database import get_engine
-# --- CRITICAL CHANGE: IMPORT THE ROBUST safe_division FUNCTION ---
-from utils import create_kpi_body, create_placeholder_figure, safe_division
+from utils import create_kpi_body, create_placeholder_figure
 
 logger = logging.getLogger(__name__)
 
@@ -55,158 +54,85 @@ def register_callbacks(app):
         }
         return layouts.get(active_tab, lambda: html.H4("Tab not found."))()
 
-    # -------------------------------------------------------------------------
-    # --- ENTERPRISE CALCULATION CALLBACK (REPLACES OLD SALES DASHBOARD) ---
-    # -------------------------------------------------------------------------
+    # --- SALES DASHBOARD CALLBACK ---
     @app.callback(
-        [Output('kpi-total-revenue', 'children'),      # CHANGED TO: Net Revenue
-         Output('kpi-gross-margin', 'children'),       # CHANGED TO: Contribution Margin %
-         Output('kpi-net-profit', 'children'),       # CHANGED TO: Contribution Margin Value
-         Output('kpi-total-orders', 'children'),
-         Output('kpi-aov', 'children'),
-         Output('kpi-return-rate', 'children'),
-         Output('sales-funnel-chart', 'figure'), 
-         Output('sales-over-time-chart', 'figure'),
-         Output('sales-by-category-chart', 'figure'), 
-         Output('top-products-chart', 'figure'),
-         Output('sales-by-channel-chart', 'figure'), 
-         Output('sales-by-city-chart', 'figure'),
+        [Output('kpi-total-revenue', 'children'), Output('kpi-gross-margin', 'children'),
+         Output('kpi-net-profit', 'children'), Output('kpi-total-orders', 'children'),
+         Output('kpi-aov', 'children'), Output('kpi-return-rate', 'children'),
+         Output('sales-funnel-chart', 'figure'), Output('sales-over-time-chart', 'figure'),
+         Output('sales-by-category-chart', 'figure'), Output('top-products-chart', 'figure'),
+         Output('sales-by-channel-chart', 'figure'), Output('sales-by-city-chart', 'figure'),
          Output('sales-by-branch-chart', 'figure')],
-        [Input('data-store-trigger', 'data'), 
-         Input('channel-filter-dropdown', 'value'),
-         Input('sales-date-picker', 'start_date'), 
-         Input('sales-date-picker', 'end_date'),
+        [Input('data-store-trigger', 'data'), Input('channel-filter-dropdown', 'value'),
+         Input('sales-date-picker', 'start_date'), Input('sales-date-picker', 'end_date'),
          Input('time-agg-selector', 'value')]
     )
     def update_sales_dashboard(_, selected_channel, start_date, end_date, time_agg):
-        # --- 1. LOAD ALL REQUIRED DATA FROM GLOBAL STORE ---
         sales_df = DATA.get('sales', pd.DataFrame())
         funnel_df = DATA.get('sales_funnel', pd.DataFrame())
-        # NEW: Load Delivery and Marketing data to calculate true profit
-        delivery_df = DATA.get('deliveries', pd.DataFrame())
-        # Assuming raw marketing spend is loaded as 'marketing_spend' in data.py
-        # This is CRITICAL for calculating filtered ROAS/Profit.
-        # We need the raw spend file (marketing_campaigns.csv), not the pre-aggregated one.
-        marketing_df = DATA.get('marketing_spend', pd.DataFrame()) # Using 'marketing_spend' as the likely key for raw data
-
         if sales_df.empty or not start_date or not end_date:
             raise PreventUpdate
 
-        # --- 2. CREATE MASTER FILTERS BASED ON USER INPUT ---
         start_date_obj, end_date_obj = pd.to_datetime(start_date).date(), pd.to_datetime(end_date).date()
-        date_mask_sales = (sales_df['date'] >= start_date_obj) & (sales_df['date'] <= end_date_obj)
+        date_mask = (sales_df['date'] >= start_date_obj) & (sales_df['date'] <= end_date_obj)
         channel_mask = (sales_df['channel'] == selected_channel) if selected_channel != 'All' else True
-        
-        filtered_sales = sales_df.loc[date_mask_sales & channel_mask]
+        filtered_sales = sales_df.loc[date_mask & channel_mask]
 
         if filtered_sales.empty:
             empty_kpi = create_kpi_body("No Data", "-")
             placeholder_fig = create_placeholder_figure("No data for this period")
             return [empty_kpi]*6 + [placeholder_fig]*7
 
-        # NEW: Filter cost data using the SAME date range
-        date_mask_delivery = (delivery_df['date'] >= start_date_obj) & (delivery_df['date'] <= end_date_obj)
-        filtered_delivery = delivery_df.loc[date_mask_delivery]
-        
-        # NOTE: This assumes 'marketing_spend' has a 'date' column.
-        # If 'marketing_spend' is not in DATA, this calculation will skip ad spend, but remain valid.
-        if not marketing_df.empty and 'date' in marketing_df.columns:
-             marketing_df['date'] = pd.to_datetime(marketing_df['date']).dt.date
-             date_mask_marketing = (marketing_df['date'] >= start_date_obj) & (marketing_df['date'] <= end_date_obj)
-             filtered_marketing = marketing_df.loc[date_mask_marketing]
-             total_ad_spend = filtered_marketing['cost'].sum() # Assuming raw cost column is 'cost'
-        else:
-             total_ad_spend = 0.0 # No marketing data found or no date column
+        total_revenue = filtered_sales['netsale'].sum()
+        total_cogs = filtered_sales['costofgoodssold'].sum()
+        net_profit = total_revenue - total_cogs
+        gross_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+        total_orders = filtered_sales['orderid'].nunique()
+        aov = total_revenue / total_orders if total_orders > 0 else 0
+        returned_orders = filtered_sales[filtered_sales['orderstatus'] == 'Returned']['orderid'].nunique()
+        return_rate = (returned_orders / total_orders * 100) if total_orders > 0 else 0
 
-        # --- 3. DEFINE "SUCCESSFUL" vs. "FAILED" TRANSACTIONS ---
-        # This is the core of enterprise logic. We only count revenue we actually kept.
-        successful_sales_df = filtered_sales[~filtered_sales['orderstatus'].isin(['Returned', 'Canceled'])]
-        returned_sales_df = filtered_sales[filtered_sales['orderstatus'] == 'Returned']
+        kpi_revenue = create_kpi_body("Total Revenue", f"{total_revenue:,.2f} SAR")
+        kpi_margin = create_kpi_body("Gross Margin", f"{gross_margin:.2f}%")
+        kpi_profit = create_kpi_body("Net Profit", f"{net_profit:,.2f} SAR")
+        kpi_orders = create_kpi_body("Total Orders", f"{total_orders:,}")
+        kpi_aov = create_kpi_body("Avg Order Value", f"{aov:,.2f} SAR")
+        kpi_return = create_kpi_body("Return Rate", f"{return_rate:.2f}%")
 
-        # --- 4. CALCULATE ENTERPRISE KPIs (NET REVENUE & CONTRIBUTION MARGIN) ---
-        
-        # KPI 1: NET REVENUE (Your old "Total Revenue" was wrong)
-        # This is the revenue from orders that were NOT returned or canceled.
-        net_revenue = successful_sales_df['netsale'].sum()
-
-        # KPI 2: CONTRIBUTION MARGIN (This replaces your old "Net Profit")
-        # This is the TRUE profit left over after ALL variable costs are paid.
-        
-        # Variable Cost 1: Cost of Goods Sold (for successful sales only)
-        total_cogs = successful_sales_df['costofgoodssold'].sum()
-        
-        # Variable Cost 2: Delivery Costs (for delivered orders in the period)
-        total_delivery_cost = filtered_delivery[filtered_delivery['status'] == 'Delivered']['deliverycost'].sum()
-        
-        # Variable Cost 3: Advertising Spend (all spend in the period)
-        # (This was calculated above as total_ad_spend)
-        
-        all_variable_costs = total_cogs + total_delivery_cost + total_ad_spend
-        contribution_margin_value = net_revenue - all_variable_costs
-        
-        # KPI 3: CONTRIBUTION MARGIN % (Your old "Gross Margin")
-        # This is the true measure of profitability, calculated against NET revenue.
-        contribution_margin_percent = safe_division(contribution_margin_value, net_revenue) * 100
-
-        # KPI 4: TOTAL ORDERS (Placed)
-        # This KPI is fine as-is. It's the total number of orders initiated.
-        total_orders_placed = filtered_sales['orderid'].nunique()
-        
-        # KPI 5: AVERAGE ORDER VALUE (AOV)
-        # This MUST be based on NET revenue and SUCCESSFUL orders.
-        total_successful_orders = successful_sales_df['orderid'].nunique()
-        aov = safe_division(net_revenue, total_successful_orders)
-        
-        # KPI 6: RETURN RATE
-        # Your logic was correct, but now we use safe_division.
-        returned_orders_count = returned_sales_df['orderid'].nunique()
-        return_rate = safe_division(returned_orders_count, total_orders_placed) * 100
-
-        # --- 5. FORMAT KPIs FOR DISPLAY ---
-        kpi_revenue = create_kpi_body("Net Revenue", f"{net_revenue:,.2f} SAR")
-        kpi_margin_pct = create_kpi_body("Contribution Margin", f"{contribution_margin_percent:.2f}%")
-        kpi_profit = create_kpi_body("Contribution Profit", f"{contribution_margin_value:,.2f} SAR")
-        kpi_orders = create_kpi_body("Total Orders Placed", f"{total_orders_placed:,}")
-        kpi_aov = create_kpi_body("Avg Order Value (Net)", f"{aov:,.2f} SAR")
-        kpi_return = create_kpi_body("Order Return Rate", f"{return_rate:.2f}%")
-
-        # --- 6. CREATE CHARTS (Using the new corrected data) ---
-        
         funnel_fig = create_placeholder_figure("Funnel Data Not Available")
         if not funnel_df.empty:
-            # FIX: Use calculated, filtered numbers for the funnel to match KPIs
-            # This makes the funnel logical: Visits -> Carts -> Orders PLACED -> Successful Orders
+            # Get completed orders count from the same filtered data
+            completed = filtered_sales[filtered_sales['orderstatus'] == 'Completed']['orderid'].nunique()
+            
+            # FIX: Use the 'total_orders' variable (calculated just above for the KPI)
+            # This ensures the funnel is logical (Fulfilled <= Total Orders) and matches the KPIs.
             funnel_fig = go.Figure(go.Funnel(
-                y=["Visits", "Carts", "Total Orders Placed", "Successful Orders"], 
-                x=[funnel_df['visits'].sum(), funnel_df['carts'].sum(), total_orders_placed, total_successful_orders], 
-                textinfo="value+percent previous" # Changed to "previous" to show drop-off
-            )).update_layout(title_text="Sales Funnel (Filtered Period)")
+                y=["Visits", "Carts", "Total Orders", "Fulfilled"], 
+                x=[funnel_df['visits'].sum(), funnel_df['carts'].sum(), total_orders, completed], 
+                textinfo="value+percent initial"
+            )).update_layout(title_text="Sales Funnel")
 
-        # Group by time using NETSALE from successful orders only
-        time_grouped = successful_sales_df.groupby(time_agg)['netsale'].sum().reset_index()
-        sales_over_time_fig = px.line(time_grouped, x=time_agg, y='netsale', title=f'Net Revenue Trend ({time_agg.capitalize()})')
+        time_grouped = filtered_sales.groupby(time_agg)['netsale'].sum().reset_index()
+        sales_over_time_fig = px.line(time_grouped, x=time_agg, y='netsale', title=f'Net Sales Trend ({time_agg.capitalize()})')
         
-        # All charts below should be based on SUCCESSFUL sales to reflect real revenue
-        category_sales = successful_sales_df.groupby('category')['netsale'].sum().reset_index()
-        sales_by_cat_fig = px.pie(category_sales, names='category', values='netsale', title='Net Revenue by Category', hole=0.3)
+        category_sales = filtered_sales.groupby('category')['netsale'].sum().reset_index()
+        sales_by_cat_fig = px.pie(category_sales, names='category', values='netsale', title='Sales by Category', hole=0.3)
         
-        product_sales = successful_sales_df.groupby('productname')['netsale'].sum().nlargest(10).reset_index()
-        top_prod_fig = px.bar(product_sales, x='netsale', y='productname', orientation='h', title='Top 10 Products (by Net Revenue)').update_layout(yaxis={'categoryorder':'total ascending'})
+        product_sales = filtered_sales.groupby('productname')['netsale'].sum().nlargest(10).reset_index()
+        top_prod_fig = px.bar(product_sales, x='netsale', y='productname', orientation='h', title='Top 10 Products').update_layout(yaxis={'categoryorder':'total ascending'})
         
-        channel_sales = successful_sales_df.groupby('channel')['netsale'].sum().reset_index()
-        sales_by_channel_fig = px.pie(channel_sales, names='channel', values='netsale', title='Net Revenue by Channel', hole=0.3)
+        channel_sales = filtered_sales.groupby('channel')['netsale'].sum().reset_index()
+        sales_by_channel_fig = px.pie(channel_sales, names='channel', values='netsale', title='Sales by Channel', hole=0.3)
         
-        city_sales = successful_sales_df.groupby('city')['netsale'].sum().nlargest(10).reset_index()
-        sales_by_city_fig = px.bar(city_sales, x='netsale', y='city', orientation='h', title='Top 10 Cities (by Net Revenue)').update_layout(yaxis={'categoryorder':'total ascending'})
+        city_sales = filtered_sales.groupby('city')['netsale'].sum().nlargest(10).reset_index()
+        sales_by_city_fig = px.bar(city_sales, x='netsale', y='city', orientation='h', title='Top 10 Cities by Sales').update_layout(yaxis={'categoryorder':'total ascending'})
         
-        branch_sales = successful_sales_df.groupby('locationid')['netsale'].sum().nlargest(10).reset_index()
-        sales_by_branch_fig = px.bar(branch_sales, x='netsale', y='locationid', orientation='h', title='Top 10 Branches (by Net Revenue)').update_layout(yaxis={'categoryorder':'total ascending'})
+        branch_sales = filtered_sales.groupby('locationid')['netsale'].sum().nlargest(10).reset_index()
+        sales_by_branch_fig = px.bar(branch_sales, x='netsale', y='locationid', orientation='h', title='Top 10 Pharmacy Branches by Sales').update_layout(yaxis={'categoryorder':'total ascending'})
 
-        return kpi_revenue, kpi_margin_pct, kpi_profit, kpi_orders, kpi_aov, kpi_return, funnel_fig, sales_over_time_fig, sales_by_cat_fig, top_prod_fig, sales_by_channel_fig, sales_by_city_fig, sales_by_branch_fig
+        return kpi_revenue, kpi_margin, kpi_profit, kpi_orders, kpi_aov, kpi_return, funnel_fig, sales_over_time_fig, sales_by_cat_fig, top_prod_fig, sales_by_channel_fig, sales_by_city_fig, sales_by_branch_fig
 
-    # -------------------------------------------------------------------------
-    # --- DELIVERY DASHBOARD CALLBACK (STABILITY FIX) ---
-    # -------------------------------------------------------------------------
+    # --- DELIVERY DASHBOARD CALLBACK ---
     @app.callback(
         [Output('kpi-on-time-delivery', 'children'), Output('kpi-failed-delivery', 'children'),
          Output('kpi-avg-delivery-time', 'children'), Output('kpi-avg-delivery-cost', 'children'),
@@ -231,12 +157,8 @@ def register_callbacks(app):
             return [empty_kpi]*4 + [placeholder_fig]*3
             
         total_deliveries = len(filtered_df)
-        
-        # --- FIX: Replaced manual division checks with robust safe_division ---
-        on_time_rate = safe_division(filtered_df['on_time'].sum(), total_deliveries) * 100
-        failed_rate = safe_division((filtered_df['status'] == 'Failed').sum(), total_deliveries) * 100
-        # --- END FIX ---
-        
+        on_time_rate = (filtered_df['on_time'].sum() / total_deliveries * 100) if total_deliveries > 0 else 0
+        failed_rate = ((filtered_df['status'] == 'Failed').sum() / total_deliveries * 100) if total_deliveries > 0 else 0
         avg_delivery_time = filtered_df['delivery_time_days'].mean()
         avg_delivery_cost = filtered_df['deliverycost'].mean()
 
@@ -258,9 +180,7 @@ def register_callbacks(app):
 
         return kpi_on_time, kpi_failed, kpi_avg_time, kpi_avg_cost, pipeline_fig, time_by_city_fig, partner_perf_fig
 
-    # -------------------------------------------------------------------------
-    # --- CUSTOMER DASHBOARD CALLBACK (NO CHANGE NEEDED, LOGIC IS FINE) ---
-    # -------------------------------------------------------------------------
+    # --- CUSTOMER DASHBOARD CALLBACK ---
     @app.callback(
         [Output('kpi-total-customers', 'children'), Output('kpi-active-customers', 'children'),
          Output('kpi-dormant-customers', 'children'), Output('kpi-churn-risk', 'children'),
@@ -301,9 +221,7 @@ def register_callbacks(app):
         
         return kpi_total, kpi_active, kpi_dormant, kpi_churn, status_dist_fig, data, columns
 
-    # -------------------------------------------------------------------------
-    # --- CONSOLIDATED EXPORT CALLBACK (NO CHANGE NEEDED) ---
-    # -------------------------------------------------------------------------
+    # --- CONSOLIDATED EXPORT CALLBACK ---
     @app.callback(
         Output("download-dataframe-csv", "data"),
         [Input("export-csv-button", "n_clicks"), Input("export-churn-button", "n_clicks")],
@@ -340,9 +258,8 @@ def register_callbacks(app):
             
         raise PreventUpdate
 
-    # -------------------------------------------------------------------------
-    # --- MARKETING DASHBOARD CALLBACK (STABILITY FIX) ---
-    # -------------------------------------------------------------------------
+    # --- OTHER DASHBOARD CALLBACKS ---
+
     @app.callback(
         [Output('kpi-total-ad-spend', 'children'), Output('kpi-avg-roas', 'children'),
          Output('kpi-avg-cpa', 'children'), Output('kpi-total-conversions', 'children'),
@@ -359,31 +276,22 @@ def register_callbacks(app):
             return [empty_kpi]*4 + [placeholder]*3
         
         total_spend, total_revenue = campaign_performance_df['totalcost'].sum(), campaign_performance_df['netsale'].sum()
+        avg_roas = total_revenue / total_spend if total_spend > 0 else 0
         total_conversions = campaign_performance_df['conversions'].sum()
-
-        # --- FIX: Replaced manual division checks with robust safe_division ---
-        # NOTE: This is "Gross ROAS" because this isolated data table does not know about returns.
-        # Your 'data.py' script must be modified to calculate NET revenue per campaign for this to be truly accurate.
-        # However, this change makes the calculation stable and correct based on the data provided.
-        avg_roas = safe_division(total_revenue, total_spend)
-        avg_cpa = safe_division(total_spend, total_conversions)
-        # --- END FIX ---
+        avg_cpa = total_spend / total_conversions if total_conversions > 0 else 0
         
         kpi_spend = create_kpi_body("Total Ad Spend", f"{total_spend:,.2f} SAR")
-        kpi_roas = create_kpi_body("Overall ROAS (Gross)", f"{avg_roas:.2f}x") # Added (Gross) for clarity
+        kpi_roas = create_kpi_body("Overall ROAS", f"{avg_roas:.2f}x")
         kpi_cpa = create_kpi_body("Average CPA", f"{avg_cpa:,.2f} SAR")
         kpi_conv = create_kpi_body("Attributed Conversions", f"{total_conversions:,.0f}")
         
-        roas_fig = px.bar(campaign_performance_df, x='campaignname', y='roas', color='channel', title='ROAS (Gross) by Campaign')
+        roas_fig = px.bar(campaign_performance_df, x='campaignname', y='roas', color='channel', title='ROAS by Campaign')
         cpa_fig = px.bar(campaign_performance_df, x='campaignname', y='cpa', color='channel', title='CPA by Campaign')
         conv_by_channel = campaign_performance_df.groupby('channel')['conversions'].sum().reset_index()
         conv_channel_fig = px.pie(conv_by_channel, names='channel', values='conversions', title='Conversions by Channel', hole=0.3)
         
         return kpi_spend, kpi_roas, kpi_cpa, kpi_conv, roas_fig, cpa_fig, conv_channel_fig
 
-    # -------------------------------------------------------------------------
-    # --- PROFIT DASHBOARD CALLBACK (NO CHANGE NEEDED, LOGIC IS FINE) ---
-    # -------------------------------------------------------------------------
     @app.callback(
         [Output('kpi-total-net-profit', 'children'), Output('kpi-avg-profit-margin', 'children'),
          Output('kpi-profit-lost-returns', 'children'), Output('profit-by-channel-chart', 'figure'),
@@ -392,9 +300,6 @@ def register_callbacks(app):
         [Input('data-store-trigger', 'data'), Input('tabs-controller', 'active_tab')]
     )
     def update_profit_dashboard(_, active_tab):
-        # This tab is fine because it runs off its own pre-calculated 'profit_df'.
-        # The core flaw was that this data was ALL-TIME and disconnected from the 'sales-tab' filters.
-        # Now, your 'sales-tab' calculates its OWN correct, FILTERED profit.
         if active_tab != 'profit-tab': raise PreventUpdate
         profit_df = DATA.get('profit_df', pd.DataFrame())
         if profit_df.empty:
@@ -405,12 +310,12 @@ def register_callbacks(app):
         total_net_profit = profit_df['net_profit'].sum()
         avg_profit_margin = profit_df['profit_margin'].mean()
         returned_orders_df = profit_df[profit_df['orderstatus'] == 'Returned']
-        # This calculation is likely flawed (double-counting), but it's specific to this table logic
-        profit_lost_to_returns = returned_orders_df['total_cost'].sum() + returned_orders_df['netsale'].sum() 
+        # FIX: Profit lost is the sum of the net_profit we didn't get to keep from returned orders.
+        profit_lost_to_returns = returned_orders_df['net_profit'].sum()
         
-        kpi_profit = create_kpi_body("Total Net Profit (All-Time)", f"{total_net_profit:,.2f} SAR")
-        kpi_margin = create_kpi_body("Average Profit Margin (All-Time)", f"{avg_profit_margin:.2f}%")
-        kpi_returns = create_kpi_body("Profit Lost to Returns (All-Time)", f"{profit_lost_to_returns:,.2f} SAR")
+        kpi_profit = create_kpi_body("Total Net Profit", f"{total_net_profit:,.2f} SAR")
+        kpi_margin = create_kpi_body("Average Profit Margin", f"{avg_profit_margin:.2f}%")
+        kpi_returns = create_kpi_body("Profit Lost to Returns", f"{profit_lost_to_returns:,.2f} SAR")
         
         profit_by_channel = profit_df.groupby('channel')['net_profit'].sum().reset_index()
         profit_by_channel_fig = px.bar(profit_by_channel, x='channel', y='net_profit', title='Profit Contribution by Channel', color='channel')
@@ -437,9 +342,6 @@ def register_callbacks(app):
         
         return kpi_profit, kpi_margin, kpi_returns, profit_by_channel_fig, profit_by_cat_fig, high_margin_fig, low_margin_fig, recommendation_list
 
-    # -------------------------------------------------------------------------
-    # --- PREDICTIVE DASHBOARD CALLBACK (NO CHANGE NEEDED) ---
-    # -------------------------------------------------------------------------
     @app.callback(
         [Output('kpi-high-risk-customers', 'children'), Output('kpi-med-risk-customers', 'children'),
          Output('kpi-low-risk-customers', 'children'), Output('churn-risk-distribution-chart', 'figure')],
@@ -465,3 +367,4 @@ def register_callbacks(app):
         fig.update_layout(xaxis_title='Predicted Churn Probability', yaxis_title='Number of Customers')
         
         return kpi_high, kpi_med, kpi_low, fig
+
