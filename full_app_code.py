@@ -94,7 +94,7 @@ def register_callbacks(app):
                              create_predictive_layout)
         layouts = {
             "sales-tab": create_sales_layout, "delivery-tab": create_delivery_layout,
-            "customer-tab": create_customer_layout, "competitor-tab": create_competitor_layout,
+            "customer-tab": create_customer_layout,
             "marketing-tab": create_marketing_layout, "profit-tab": create_profit_layout,
             "predictive-tab": create_predictive_layout
         }
@@ -297,53 +297,6 @@ def register_callbacks(app):
         raise PreventUpdate
 
     # --- OTHER DASHBOARD CALLBACKS ---
-    @app.callback(
-        [Output('kpi-price-advantage', 'children'), Output('kpi-price-disadvantage', 'children'),
-         Output('kpi-promo-frequency', 'children'), Output('price-comparison-scatter-chart', 'figure'),
-         Output('promo-analysis-chart', 'figure'), Output('assortment-overlap-chart', 'figure')],
-        [Input('data-store-trigger', 'data'), Input('tabs-controller', 'active_tab')]
-    )
-    def update_competitor_dashboard(_, active_tab):
-        if active_tab != 'competitor-tab': raise PreventUpdate
-        price_comparison_df = DATA.get('price_comparison_df', pd.DataFrame())
-        competitor_df = DATA.get('competitors', pd.DataFrame())
-        sales_df = DATA.get('sales', pd.DataFrame())
-        if price_comparison_df.empty or competitor_df.empty or sales_df.empty:
-            placeholder = create_placeholder_figure("Data Not Available")
-            empty_kpi = create_kpi_body("No Data", "-")
-            return empty_kpi, empty_kpi, empty_kpi, placeholder, placeholder, placeholder
-
-        products_cheaper = price_comparison_df[price_comparison_df['price_difference'] < 0].shape[0]
-        products_pricier = price_comparison_df[price_comparison_df['price_difference'] > 0].shape[0]
-        promo_rate = (competitor_df['onpromotion'].sum() / len(competitor_df) * 100)
-        
-        kpi_advantage = create_kpi_body("Products We Undercut", f"{products_cheaper}")
-        kpi_disadvantage = create_kpi_body("Products More Expensive", f"{products_pricier}")
-        kpi_promo = create_kpi_body("Avg. Competitor Promo Rate", f"{promo_rate:.2f}%")
-        
-        price_comp_fig = px.scatter(price_comparison_df, x='our_price', y='avg_competitor_price', hover_name='productname', text='productname', size='price_difference', title='Our Price vs. Average Competitor Price')
-        price_comp_fig.add_shape(type='line', x0=0, y0=0, x1=price_comparison_df['our_price'].max(), y1=price_comparison_df['our_price'].max(), line=dict(color='red', dash='dash'))
-        
-        promo_freq = competitor_df.groupby('competitor')['onpromotion'].mean().reset_index()
-        promo_freq['onpromotion'] *= 100
-        promo_fig = px.bar(promo_freq, x='competitor', y='onpromotion', title='Promotion Frequency by Competitor')
-        
-        our_products = set(sales_df['productname'].unique())
-        nahdi_products = set(competitor_df[competitor_df['competitor'] == 'Nahdi']['productname'].unique())
-        dawaa_products = set(competitor_df[competitor_df['competitor'] == 'Al-Dawaa']['productname'].unique())
-        
-        venn_data = pd.DataFrame([
-            {'sets': ['Ours Only'], 'size': len(our_products - nahdi_products - dawaa_products)},
-            {'sets': ['Nahdi Only'], 'size': len(nahdi_products - our_products - dawaa_products)},
-            {'sets': ['Al-Dawaa Only'], 'size': len(dawaa_products - our_products - nahdi_products)},
-            {'sets': ['Ours & Nahdi'], 'size': len(our_products & nahdi_products - dawaa_products)},
-            {'sets': ['Ours & Al-Dawaa'], 'size': len(our_products & dawaa_products - nahdi_products)},
-            {'sets': ['Nahdi & Al-Dawaa'], 'size': len(nahdi_products & dawaa_products - our_products)},
-            {'sets': ['All Three'], 'size': len(our_products & nahdi_products & dawaa_products)},
-        ])
-        assortment_fig = px.bar(venn_data, x='size', y='sets', orientation='h', title='Product Assortment Overlap')
-        
-        return kpi_advantage, kpi_disadvantage, kpi_promo, price_comp_fig, promo_fig, assortment_fig
 
     @app.callback(
         [Output('kpi-total-ad-spend', 'children'), Output('kpi-avg-roas', 'children'),
@@ -524,7 +477,6 @@ TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
     "sales": {"schema_norm": SALES_SCHEMA_NORM, "filename": "sales_data.csv", "file_prefix": "sales_"},
     "deliveries": {"schema_norm": DELIVERY_SCHEMA_NORM, "filename": "delivery_data.csv", "file_prefix": "delivery_"},
     "customers": {"schema_norm": CUSTOMER_SCHEMA_NORM, "filename": "customer_data.csv", "file_prefix": "customer_"},
-    "competitors": {"schema_norm": COMPETITOR_SCHEMA_NORM, "filename": "competitor_data.csv", "file_prefix": "competitor_"},
     "sales_funnel": {"schema_norm": FUNNEL_SCHEMA_NORM, "filename": "funnel_data.csv", "file_prefix": "funnel_"},
     "marketing_campaigns": {"schema_norm": CAMPAIGN_SCHEMA_NORM, "filename": "marketing_campaigns.csv", "file_prefix": "campaigns_"},
     "marketing_attribution": {"schema_norm": ATTRIBUTION_SCHEMA_NORM, "filename": "marketing_attribution.csv", "file_prefix": "attribution_"}
@@ -538,21 +490,23 @@ logger.info(f"Configuration loaded. DB Target: {settings.DATABASE_URL.split('@')
 
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Data Processing Engine - V21.0 (Final Master)
+# Data Processing Engine - V21.2 (Vectorization Fix)
 #
-# This module is the central engine for all data loading, preparation, and
-# enrichment. It is designed to be modular, resilient, and scalable.
+# This version corrects an error where a single-value utility (safe_division)
+# was being incorrectly applied to entire Pandas columns (Series).
+# Replaced all vectorized division calls with np.where for safe, element-wise ops.
 # -----------------------------------------------------------------------------
 
 import logging
 import pandas as pd
+import numpy as np  # <-- ADD THIS IMPORT
 from sqlalchemy.engine import Engine
 from typing import Dict
 from datetime import datetime, timedelta
 
 # Import from our central modules
-from database import refresh_all_data
-from utils import safe_division
+from database import refresh_all_data, safe_table_exists
+from utils import safe_division  # We still need this for any single-value calcs
 
 logger = logging.getLogger(__name__)
 
@@ -566,8 +520,6 @@ def _enrich_sales_data(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Enriching sales data...")
     if df.empty:
         return df
-    
-    # Use .get() for safer column access to prevent KeyErrors
     df['netsale'] = df.get('grossvalue', 0) - df.get('discountvalue', 0)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['date'] = df['timestamp'].dt.date
@@ -583,7 +535,6 @@ def _calculate_customer_segments(customers_df: pd.DataFrame, sales_df: pd.DataFr
 
     customers_df['joindate'] = pd.to_datetime(customers_df['joindate'])
     
-    # FIX (F): Added missing .reset_index() to the RFM calculation
     rfm_df = sales_df.groupby('customerid').agg(
         last_purchase_date=('timestamp', 'max'),
         frequency=('orderid', 'nunique'),
@@ -592,7 +543,6 @@ def _calculate_customer_segments(customers_df: pd.DataFrame, sales_df: pd.DataFr
     
     current_date = datetime.now()
     rfm_df['recency'] = (current_date - rfm_df['last_purchase_date']).dt.days
-    
     analysis_df = pd.merge(customers_df, rfm_df, on='customerid', how='left')
 
     def get_status(row):
@@ -606,6 +556,93 @@ def _calculate_customer_segments(customers_df: pd.DataFrame, sales_df: pd.DataFr
     analysis_df['status'] = analysis_df.apply(get_status, axis=1)
     return analysis_df
 
+def _enrich_delivery_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Enriches raw delivery data with a proper 'date' column for filtering."""
+    logger.info("Enriching delivery data...")
+    if df.empty:
+        return df
+    df['orderdate'] = pd.to_datetime(df['orderdate'])
+    df['date'] = df['orderdate'].dt.date
+    df['actualdeliverydate'] = pd.to_datetime(df['actualdeliverydate'])
+    df['delivery_time_days'] = (df['actualdeliverydate'] - df['orderdate']).dt.days
+    df['promiseddate'] = pd.to_datetime(df['promiseddate'])
+    df['on_time'] = df['actualdeliverydate'] <= df['promiseddate']
+    return df
+
+
+    
+    # --- FIX: Replaced safe_division with np.where for vectorized division ---
+
+def _calculate_campaign_performance(sales_df: pd.DataFrame, campaigns_df: pd.DataFrame, attribution_df: pd.DataFrame) -> pd.DataFrame:
+    """Calculates ROAS and CPA for the Marketing tab."""
+    logger.info("Calculating campaign performance dataframe...")
+    if sales_df.empty or campaigns_df.empty or attribution_df.empty:
+        return pd.DataFrame()
+
+    sales_subset = sales_df[['orderid', 'netsale']].drop_duplicates()
+    attributed_sales = pd.merge(attribution_df, sales_subset, on='orderid', how='left')
+
+    campaign_performance = attributed_sales.groupby('campaignid').agg(
+        netsale=('netsale', 'sum'),
+        conversions=('orderid', 'nunique')
+    ).reset_index()
+
+    campaign_analysis_df = pd.merge(campaigns_df, campaign_performance, on='campaignid', how='left')
+    
+    campaign_analysis_df['netsale'] = campaign_analysis_df['netsale'].fillna(0)
+    campaign_analysis_df['conversions'] = campaign_analysis_df['conversions'].fillna(0)
+    
+    # --- FIX: Replaced safe_division with np.where for vectorized KPIs ---
+    campaign_analysis_df['roas'] = np.where(
+        campaign_analysis_df['totalcost'] == 0, 
+        0, 
+        campaign_analysis_df['netsale'] / campaign_analysis_df['totalcost']
+    )
+    campaign_analysis_df['cpa'] = np.where(
+        campaign_analysis_df['conversions'] == 0, 
+        0, 
+        campaign_analysis_df['totalcost'] / campaign_analysis_df['conversions']
+    )
+    
+    return campaign_analysis_df
+
+def _calculate_profit_analysis(sales_df: pd.DataFrame) -> pd.DataFrame:
+    """Creates the profit analysis dataframe based on sales data."""
+    logger.info("Calculating profit analysis dataframe...")
+    if sales_df.empty:
+        return pd.DataFrame()
+        
+    profit_df = sales_df.copy()
+    profit_df['net_profit'] = profit_df['netsale'] - profit_df['costofgoodssold']
+    
+    # --- FIX: Replaced safe_division with np.where for vectorized margin calc ---
+    profit_df['profit_margin'] = np.where(
+        profit_df['netsale'] == 0, 
+        0, 
+        (profit_df['net_profit'] / profit_df['netsale']) * 100
+    )
+    
+    profit_df['total_cost'] = profit_df['costofgoodssold']
+    
+    return profit_df
+
+def _load_prediction_data(engine: Engine) -> pd.DataFrame:
+    """Safely attempts to load the customer churn predictions table."""
+    logger.info("Attempting to load customer prediction data...")
+    table_name = "customer_churn_predictions"
+    try:
+        if safe_table_exists(engine, table_name):
+            df = pd.read_sql_table(table_name, engine)
+            logger.info(f"Successfully loaded {len(df)} rows from '{table_name}'.")
+            return df
+        else:
+            logger.warning(f"Prediction table '{table_name}' not found. Predictive tab will be empty.")
+            return pd.DataFrame()
+    except Exception as e:
+        logger.error(f"Could not load prediction table '{table_name}'. Error: {e}", exc_info=True)
+        return pd.DataFrame()
+
+
 # --- MAIN INITIALIZATION FUNCTION ---
 
 def initialize_data(engine: Engine) -> None:
@@ -613,23 +650,52 @@ def initialize_data(engine: Engine) -> None:
     Main orchestrator to load all raw data from the database and then call the
     various enrichment and transformation functions. Results are stored in the
     global DATA dictionary.
+    
+    --- FIX (V21.3) ---
+    Removed 'global DATA' and the re-assignment 'DATA = ...'.
+    This now mutates the existing DATA dict (using .clear() and .update()) 
+    so that all other modules that imported it can see the changes.
     """
-    global DATA
-    DATA = refresh_all_data(engine)
+    
+    # 1. Load all raw data
+    # Do NOT re-assign DATA. Mutate the dictionary that all other modules imported.
+    raw_data = refresh_all_data(engine)
+    DATA.clear()
+    DATA.update(raw_data)
 
-    # Sequentially enrich and create analysis dataframes
+    # 2. Sequentially enrich and create analysis dataframes
+    
+    # Sales (Base for many others)
     if 'sales' in DATA:
         DATA['sales'] = _enrich_sales_data(DATA.get('sales', pd.DataFrame()))
-    
+
+    # Customers
     if 'customers' in DATA and 'sales' in DATA:
         DATA['customer_analysis_df'] = _calculate_customer_segments(
             DATA.get('customers', pd.DataFrame()),
             DATA.get('sales', pd.DataFrame())
         )
-    
-    logger.info("Data enrichment complete.")
 
-# -*- coding: utf-8 -*-
+    # Deliveries
+    if 'deliveries' in DATA:
+        DATA['deliveries'] = _enrich_delivery_data(DATA.get('deliveries', pd.DataFrame()))
+
+    # Marketing
+    if 'sales' in DATA and 'marketing_campaigns' in DATA and 'marketing_attribution' in DATA:
+        DATA['campaign_performance_df'] = _calculate_campaign_performance(
+            DATA.get('sales', pd.DataFrame()),
+            DATA.get('marketing_campaigns', pd.DataFrame()),
+            DATA.get('marketing_attribution', pd.DataFrame())
+        )
+
+    # Profit
+    if 'sales' in DATA:
+        DATA['profit_df'] = _calculate_profit_analysis(DATA.get('sales', pd.DataFrame()))
+
+    # Predictive
+    DATA['predictions_df'] = _load_prediction_data(engine)
+    
+    logger.info("Data initialization and all enrichments complete. DATA dict is now populated.")# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # Secure Data Access Layer - V21.0 (Final Master)
 #
@@ -919,7 +985,6 @@ def create_main_layout() -> html.Div:
                 dbc.Tab(label="Sales", tab_id="sales-tab"),
                 dbc.Tab(label="Logistics", tab_id="delivery-tab"),
                 dbc.Tab(label="Customers", tab_id="customer-tab"),
-                dbc.Tab(label="Market Intel", tab_id="competitor-tab"),
                 dbc.Tab(label="Marketing", tab_id="marketing-tab"),
                 dbc.Tab(label="Profit Optimization", tab_id="profit-tab"),
                 dbc.Tab(label="Predictive Insights", tab_id="predictive-tab"),

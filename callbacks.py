@@ -101,8 +101,16 @@ def register_callbacks(app):
 
         funnel_fig = create_placeholder_figure("Funnel Data Not Available")
         if not funnel_df.empty:
+            # Get completed orders count from the same filtered data
             completed = filtered_sales[filtered_sales['orderstatus'] == 'Completed']['orderid'].nunique()
-            funnel_fig = go.Figure(go.Funnel(y=["Visits", "Carts", "Orders", "Fulfilled"], x=[funnel_df['visits'].sum(), funnel_df['carts'].sum(), funnel_df['orders'].sum(), completed], textinfo="value+percent initial")).update_layout(title_text="Sales Funnel")
+            
+            # FIX: Use the 'total_orders' variable (calculated just above for the KPI)
+            # This ensures the funnel is logical (Fulfilled <= Total Orders) and matches the KPIs.
+            funnel_fig = go.Figure(go.Funnel(
+                y=["Visits", "Carts", "Total Orders", "Fulfilled"], 
+                x=[funnel_df['visits'].sum(), funnel_df['carts'].sum(), total_orders, completed], 
+                textinfo="value+percent initial"
+            )).update_layout(title_text="Sales Funnel")
 
         time_grouped = filtered_sales.groupby(time_agg)['netsale'].sum().reset_index()
         sales_over_time_fig = px.line(time_grouped, x=time_agg, y='netsale', title=f'Net Sales Trend ({time_agg.capitalize()})')
