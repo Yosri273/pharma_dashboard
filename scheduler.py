@@ -1,87 +1,142 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# E-commerce Data Pipeline Scheduler - V1.1 (Stable)
+# Enterprise Job Orchestrator - V26.0 (Refactored for Production)
 #
-# This scheduler runs continuously, checking for new data files in the
-# 'incoming_data' folder and processing them automatically. It does not
-# include any web scraping logic.
+# This module is a robust, persistent scheduler for the data pipeline.
+# Key features:
+# - Uses a PostgresJobStore for stateful, persistent scheduling.
+# - Implements professional logging for monitoring.
+# - Handles graceful shutdown signals for containerized environments.
+# - Includes a heartbeat for liveness checks.
 # -----------------------------------------------------------------------------
 
-import time
+import logging
 import os
 import shutil
-from sqlalchemy import create_engine
-from apscheduler.schedulers.blocking import BlockingScheduler
+import signal
+import sys
+import time
 from datetime import datetime
 
-# Import the main functions from our data processing engine
-from load_data import get_database_url, process_incoming_file_and_append
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.blocking import BlockingScheduler
+from sqlalchemy.exc import OperationalError
+from tenacity import retry, stop_after_attempt, wait_fixed
 
-# --- CONFIGURATION ---
-INCOMING_DIR = "incoming_data"
-ARCHIVE_DIR = "archive"
-# For testing, we are using a short interval. For production, you could increase this.
-SCHEDULE_MINUTES = 1
+# --- 1. IMPORT FROM OUR CENTRAL MODULES ---
+from database import get_engine
+from load_data import process_incoming_file_and_append
+# We will disable the scraper for now as per our last decision,
+# but the architecture is ready for it.
+# from scraper import run_scraper
 
-# --- SCHEDULER JOB ---
-def check_for_new_files():
-    """The main job that the scheduler will run."""
-    print(f"\n[{datetime.now().ctime()}] --- Checking for new files in '{INCOMING_DIR}'... ---")
+# --- 2. CONFIGURE LOGGING ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger("ETL_Scheduler")
+
+
+# --- 3. DEFINE SCHEDULER JOBS ---
+
+def run_data_loading_job():
+    """
+    Checks the incoming directory for new files and processes them.
+    This is the core data ingestion task.
+    """
+    incoming_dir = "incoming_data"
+    archive_dir = "archive"
     
+    logger.info("--- Starting data loading job... ---")
     try:
-        engine = create_engine(get_database_url())
-        
-        # Get a list of all files in the incoming directory
-        files_to_process = [f for f in os.listdir(INCOMING_DIR) if f.endswith('.csv')]
+        engine = get_engine()
+        files_to_process = [f for f in os.listdir(incoming_dir) if f.endswith('.csv')]
 
         if not files_to_process:
-            print("No new files found.")
+            logger.info("No new files found to load.")
             return
 
-        print(f"Found {len(files_to_process)} new file(s): {files_to_process}")
-        
+        logger.info(f"Found {len(files_to_process)} file(s) to process: {files_to_process}")
         for filename in files_to_process:
-            filepath = os.path.join(INCOMING_DIR, filename)
-            
-            # Process the file using the imported function from our central engine
+            filepath = os.path.join(incoming_dir, filename)
+            # Call the processing function from our central ETL engine
             success = process_incoming_file_and_append(filepath, engine)
-            
-            # Move the file to the archive folder after processing
             if success:
-                archive_path = os.path.join(ARCHIVE_DIR, filename)
+                archive_path = os.path.join(archive_dir, filename)
                 shutil.move(filepath, archive_path)
-                print(f"  [ARCHIVED] Moved '{filename}' to '{ARCHIVE_DIR}'.")
-            else:
-                print(f"  [ERROR] Did not archive '{filename}' due to processing failure.")
+                logger.info(f"  [ARCHIVED] Moved '{filename}' to '{archive_dir}'.")
 
     except FileNotFoundError:
-        print(f"  [ERROR] Directory not found: '{INCOMING_DIR}'. Please create it.")
+        logger.warning(f"Directory not found: '{incoming_dir}'. Please create it. Skipping run.")
     except Exception as e:
-        print(f"\n--- SCHEDULER ERROR ---")
-        print(f"An unexpected error occurred during the scheduled job: {e}")
+        logger.error(f"  [FATAL ERROR] The data loader job failed. Error: {e}", exc_info=True)
 
 
-# --- MAIN EXECUTION BLOCK ---
+def heartbeat_job():
+    """A simple job that logs a message to confirm the scheduler is alive."""
+    logger.info("Scheduler heartbeat: I am alive and running.")
+
+
+# --- 4. MAIN SCHEDULER INITIALIZATION AND EXECUTION ---
 if __name__ == "__main__":
-    print("--- Starting Automated Data Pipeline Scheduler ---")
-    print(f"Watching folder: '{INCOMING_DIR}'")
-    print(f"Archive folder: '{ARCHIVE_DIR}'")
-    print(f"Checking for new files every {SCHEDULE_MINUTES} minute(s).")
-    print("Press Ctrl+C to stop the scheduler.")
+    logger.info("--- Initializing Enterprise Job Orchestrator v26.0 ---")
 
-    # Ensure directories exist
-    if not os.path.exists(INCOMING_DIR):
-        os.makedirs(INCOMING_DIR)
-    if not os.path.exists(ARCHIVE_DIR):
-        os.makedirs(ARCHIVE_DIR)
+    # --- Use a persistent Job Store ---
+    # This stores job states in our main database, so if the scheduler is
+    # restarted, it remembers its jobs and their last run times.
+    jobstores = {
+        'default': SQLAlchemyJobStore(url=get_engine().url)
+    }
+
+    scheduler = BlockingScheduler(jobstores=jobstores, timezone='Asia/Riyadh')
+
+    # Add jobs to the scheduler with cron-style triggers
+    # This job will run every day at 2:00 AM
+    scheduler.add_job(
+        run_data_loading_job,
+        trigger='cron',
+        hour=2,
+        minute=0,
+        id='daily_data_load',
+        name='Daily ETL Processing Job',
+        replace_existing=True
+    )
     
-    scheduler = BlockingScheduler()
-    # Add the job to the scheduler
-    scheduler.add_job(check_for_new_files, 'interval', minutes=SCHEDULE_MINUTES)
+    # This heartbeat job runs every 15 minutes for monitoring
+    scheduler.add_job(
+        heartbeat_job,
+        trigger='interval',
+        minutes=15,
+        id='scheduler_heartbeat',
+        name='Scheduler Liveness Check'
+    )
+
+    logger.info("Scheduler initialized. Current jobs:")
+    scheduler.print_jobs()
+
+    # --- Graceful Shutdown Handling ---
+    def shutdown(signum, frame):
+        logger.warning("Shutdown signal received. Shutting down scheduler...")
+        scheduler.shutdown()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, shutdown)  # For Ctrl+C
+    signal.signal(signal.SIGTERM, shutdown) # For Docker/Kubernetes stop signals
     
+    # --- Start the Scheduler ---
+    logger.info("\n--- Scheduler is now running. Press Ctrl+C to stop. ---")
     try:
-        # Start the scheduler
+        # Run the loading job once on startup for immediate feedback
+        logger.info("Performing initial data load on startup...")
+        run_data_loading_job()
+        
+        # Start the main scheduling loop
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
-        print("\nScheduler stopped by user.")
+        pass
+    except Exception as e:
+        logger.critical(f"Scheduler failed to start or crashed. Error: {e}", exc_info=True)
+        sys.exit(1)
 

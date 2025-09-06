@@ -1,89 +1,83 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Central Configuration Module - V20.0
+# Central Configuration Module - V21.0 (Final Master)
 #
-# Single source of truth for database connections and data schemas.
-# Solves code duplication and provides a robust connection URL parser.
+# This module is the single source of truth for all application settings,
+# database connection logic, and data schemas. It uses pydantic-settings
+# for robust, type-safe configuration management.
 # -----------------------------------------------------------------------------
 
 import os
 import re
+import logging
+import sys
+from pydantic_settings import BaseSettings
+from typing import Dict, List, Any
 
-# --- 1. DATABASE CONFIGURATION ---
-def get_database_url():
-    """
-    Gets the correct database URL from environment variables, handling various
-    formats and ensuring it's compatible with SQLAlchemy.
-    """
-    DATABASE_URL = os.environ.get('DATABASE_URL')
-    if not DATABASE_URL:
-        # Fallback for local development
-        print("DATABASE_URL not found. Falling back to local connection.")
-        DB_NAME = 'pharma_db'
-        # Safely get username, default to a common value if not found
-        DB_USER = os.environ.get('USER', 'mohamedyousri')
-        DB_HOST = 'localhost'
-        return f"postgresql://{DB_USER}@{DB_HOST}:5432/{DB_NAME}"
+# --- 1. Pydantic Settings Class ---
+class Settings(BaseSettings):
+    """Defines all application settings and their types via environment variables."""
+    DB_USER: str = "mohamedyousri"
+    DB_PASSWORD: str = ""
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_NAME: str = "pharma_db"
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = 'utf-8'
 
-    # Robustly handle different URL schemes (postgres:// and postgresql://)
-    DATABASE_URL = re.sub(r'^postgres(ql)?:\/\/', 'postgresql://', DATABASE_URL)
+    @property
+    def DATABASE_URL(self) -> str:
+        """Constructs the final database URL, applying necessary fixes."""
+        if 'DATABASE_URL' in os.environ:
+            db_url = os.environ['DATABASE_URL']
+            # FIX (D): Safely normalize postgres/postgresql prefixes
+            db_url = re.sub(r'^postgres(?!\w)', 'postgresql', db_url)
+            if "render.com" in db_url and "?sslmode=require" not in db_url:
+                db_url += "?sslmode=require"
+            return db_url
+        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    # Add SSL requirement for Render databases
-    if "render.com" in DATABASE_URL and "?sslmode=require" not in DATABASE_URL:
-        DATABASE_URL += "?sslmode=require"
-        
-    return DATABASE_URL
+settings = Settings()
 
-# --- 2. DEFINE DATA SCHEMAS & TABLE CONFIG ---
-TABLE_CONFIG = {
-    "sales": {
-        "schema": {
-            'orderid': ['OrderID'], 'timestamp': ['Timestamp'], 'productid': ['ProductID'],
-            'productname': ['ProductName'], 'category': ['Category'], 'quantity': ['Quantity'],
-            'grossvalue': ['GrossValue'], 'discountvalue': ['DiscountValue'],
-            'costofgoodssold': ['CostOfGoodsSold'], 'customerid': ['CustomerID'], 'city': ['City'],
-            'locationid': ['LocationID'], 'channel': ['Channel'], 'orderstatus': ['OrderStatus']
-        },
-        "filename": "sales_data.csv", "file_prefix": "sales_"
-    },
-    "deliveries": {
-        "schema": {
-            'deliveryid': ['DeliveryID'], 'orderid': ['OrderID'], 'orderdate': ['OrderDate'],
-            'promiseddate': ['PromisedDate'], 'actualdeliverydate': ['ActualDeliveryDate'],
-            'status': ['Status'], 'deliverypartner': ['DeliveryPartner'], 'city': ['City'],
-            'deliverycost': ['DeliveryCost']
-        },
-        "filename": "delivery_data.csv", "file_prefix": "delivery_"
-    },
-    "customers": {
-        "schema": {
-            'customerid': ['CustomerID'], 'joindate': ['JoinDate'],
-            'city': ['City'], 'segment': ['Segment']
-        },
-        "filename": "customer_data.csv", "file_prefix": "customer_"
-    },
-    "competitors": {
-        "schema": {
-            'date': ['Date'], 'competitor': ['Competitor'], 'productid': ['ProductID'],
-            'productname': ['ProductName'], 'price': ['Price'], 'onpromotion': ['OnPromotion']
-        },
-        "filename": "competitor_data.csv", "file_prefix": "competitor_"
-    },
-    "sales_funnel": {
-        "schema": { 'week': ['Week'], 'visits': ['Visits'], 'carts': ['Carts'], 'orders': ['Orders'] },
-        "filename": "funnel_data.csv", "file_prefix": "funnel_"
-    },
-    "marketing_campaigns": {
-        "schema": {
-            'campaignid': ['CampaignID'], 'campaignname': ['CampaignName'], 'channel': ['Channel'],
-            'startdate': ['StartDate'], 'enddate': ['EndDate'], 'totalcost': ['TotalCost'],
-            'impressions': ['Impressions'], 'clicks': ['Clicks']
-        },
-        "filename": "marketing_campaigns.csv", "file_prefix": "marketing_"
-    },
-    "marketing_attribution": {
-        "schema": { 'orderid': ['OrderID'], 'campaignid': ['CampaignID'] },
-        "filename": "marketing_attribution.csv", "file_prefix": "attribution_"
-    }
+# --- 2. Centralized Data Schemas ---
+SALES_SCHEMA_NORM: Dict[str, List[str]] = {
+    'orderid': ['OrderID', 'order_id'], 'timestamp': ['Timestamp', 'order_date'], 
+    'productid': ['ProductID', 'product_sku'], 'productname': ['ProductName'],
+    'category': ['Category'], 'quantity': ['Quantity', 'qty'], 'grossvalue': ['GrossValue'], 
+    'discountvalue': ['DiscountValue'], 'costofgoodssold': ['CostOfGoodsSold', 'cogs'], 
+    'customerid': ['CustomerID', 'user_id'], 'city': ['City', 'store_city'], 
+    'locationid': ['LocationID', 'store_id'], 'channel': ['Channel'], 'orderstatus': ['OrderStatus', 'status']
 }
+DELIVERY_SCHEMA_NORM: Dict[str, List[str]] = {
+    'deliveryid': ['DeliveryID'], 'orderid': ['OrderID'], 'orderdate': ['OrderDate'], 
+    'promiseddate': ['PromisedDate'], 'actualdeliverydate': ['ActualDeliveryDate'], 
+    'status': ['Status'], 'deliverypartner': ['DeliveryPartner'], 'city': ['City'], 
+    'deliverycost': ['DeliveryCost']
+}
+CUSTOMER_SCHEMA_NORM: Dict[str, List[str]] = { 'customerid': ['CustomerID'], 'joindate': ['JoinDate'], 'city': ['City'], 'segment': ['Segment'] }
+FUNNEL_SCHEMA_NORM: Dict[str, List[str]] = { 'week': ['Week'], 'visits': ['Visits'], 'carts': ['Carts'], 'orders': ['Orders'] }
+COMPETITOR_SCHEMA_NORM: Dict[str, List[str]] = { 'date': ['Date'], 'competitor': ['Competitor'], 'productid': ['ProductID'], 'productname': ['ProductName'], 'price': ['Price'], 'onpromotion': ['OnPromotion'] }
+CAMPAIGN_SCHEMA_NORM: Dict[str, List[str]] = {
+    'campaignid': ['CampaignID'], 'campaignname': ['CampaignName'], 'channel': ['Channel'], 
+    'startdate': ['StartDate'], 'enddate': ['EndDate'], 'totalcost': ['TotalCost'], 
+    'impressions': ['Impressions'], 'clicks': ['Clicks']
+}
+ATTRIBUTION_SCHEMA_NORM: Dict[str, List[str]] = { 'orderid': ['OrderID'], 'campaignid': ['CampaignID'] }
+
+TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
+    "sales": {"schema_norm": SALES_SCHEMA_NORM, "filename": "sales_data.csv", "file_prefix": "sales_"},
+    "deliveries": {"schema_norm": DELIVERY_SCHEMA_NORM, "filename": "delivery_data.csv", "file_prefix": "delivery_"},
+    "customers": {"schema_norm": CUSTOMER_SCHEMA_NORM, "filename": "customer_data.csv", "file_prefix": "customer_"},
+    "competitors": {"schema_norm": COMPETITOR_SCHEMA_NORM, "filename": "competitor_data.csv", "file_prefix": "competitor_"},
+    "sales_funnel": {"schema_norm": FUNNEL_SCHEMA_NORM, "filename": "funnel_data.csv", "file_prefix": "funnel_"},
+    "marketing_campaigns": {"schema_norm": CAMPAIGN_SCHEMA_NORM, "filename": "marketing_campaigns.csv", "file_prefix": "campaigns_"},
+    "marketing_attribution": {"schema_norm": ATTRIBUTION_SCHEMA_NORM, "filename": "marketing_attribution.csv", "file_prefix": "attribution_"}
+}
+
+# Configure professional logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
+logger = logging.getLogger(__name__)
+logger.info(f"Configuration loaded. DB Target: {settings.DATABASE_URL.split('@')[-1]}")
 

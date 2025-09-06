@@ -1,130 +1,111 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# E-commerce Data Processing Engine - V16.0 (with Marketing Data)
+# E-commerce Data Loader - V21.0 (Final Master)
 #
-# This version adds the ability to process and load marketing campaign and
-# attribution data, enabling a full-funnel view of performance.
+# This script is the master setup tool for the database. It reads all local
+# master CSV files and completely rebuilds the database tables. It also
+# provides a function for the scheduler to process incremental files.
 # -----------------------------------------------------------------------------
 
-import pandas
-from sqlalchemy import create_engine
+import pandas as pd
 import sys
 import os
-import re
+import logging
 
-# --- 1. DATABASE CONFIGURATION ---
-def get_database_url():
-    """Gets the correct database URL from environment variables or local fallback."""
-    DATABASE_URL = os.environ.get('DATABASE_URL')
-    if not DATABASE_URL:
-        print("DATABASE_URL not found. Falling back to local connection.")
-        DB_NAME = 'pharma_db'
-        DB_USER = 'mohamedyousri'
-        DB_HOST = 'localhost'
-        DATABASE_URL = f"postgresql://{DB_USER}@{DB_HOST}:5432/{DB_NAME}"
-    else:
-        DATABASE_URL = re.sub(r"^(postgres|https)://", "postgresql://", DATABASE_URL)
-        if "render.com" in DATABASE_URL and "?sslmode=require" not in DATABASE_URL:
-            DATABASE_URL += "?sslmode=require"
-    return DATABASE_URL
+# Import from our central, single-source-of-truth modules
+from config import TABLE_CONFIG
+from database import get_engine
 
-# --- 2. DEFINE DATA SCHEMAS ---
-SALES_SCHEMA = {
-    'orderid': ['OrderID'], 'timestamp': ['Timestamp'], 'productid': ['ProductID'],
-    'productname': ['ProductName'], 'category': ['Category'], 'quantity': ['Quantity'],
-    'grossvalue': ['GrossValue'], 'discountvalue': ['DiscountValue'],
-    'costofgoodssold': ['CostOfGoodsSold'], 'customerid': ['CustomerID'], 'city': ['City'],
-    'locationid': ['LocationID'], 'channel': ['Channel'], 'orderstatus': ['OrderStatus']
-}
-FUNNEL_SCHEMA = { 'week': ['Week'], 'visits': ['Visits'], 'carts': ['Carts'], 'orders': ['Orders'] }
-DELIVERY_SCHEMA = {
-    'deliveryid': ['DeliveryID'], 'orderid': ['OrderID'], 'orderdate': ['OrderDate'],
-    'promiseddate': ['PromisedDate'], 'actualdeliverydate': ['ActualDeliveryDate'],
-    'status': ['Status'], 'deliverypartner': ['DeliveryPartner'], 'city': ['City'],
-    'deliverycost': ['DeliveryCost']
-}
-CUSTOMER_SCHEMA = { 'customerid': ['CustomerID'], 'joindate': ['JoinDate'], 'city': ['City'], 'segment': ['Segment'] }
-COMPETITOR_SCHEMA = { 'date': ['Date'], 'competitor': ['Competitor'], 'productid': ['ProductID'], 'productname': ['ProductName'], 'price': ['Price'], 'onpromotion': ['OnPromotion'] }
-# NEW SCHEMAS
-CAMPAIGN_SCHEMA = {
-    'campaignid': ['CampaignID'], 'campaignname': ['CampaignName'], 'channel': ['Channel'],
-    'startdate': ['StartDate'], 'enddate': ['EndDate'], 'totalcost': ['TotalCost'],
-    'impressions': ['Impressions'], 'clicks': ['Clicks']
-}
-ATTRIBUTION_SCHEMA = { 'orderid': ['OrderID'], 'campaignid': ['CampaignID'] }
+# Configure logging for this script
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
+logger = logging.getLogger(__name__)
 
-TABLE_CONFIG = {
-    "sales": {"schema": SALES_SCHEMA, "filename": "sales_data.csv"},
-    "deliveries": {"schema": DELIVERY_SCHEMA, "filename": "delivery_data.csv"},
-    "customers": {"schema": CUSTOMER_SCHEMA, "filename": "customer_data.csv"},
-    "competitors": {"schema": COMPETITOR_SCHEMA, "filename": "competitor_data.csv"},
-    "sales_funnel": {"schema": FUNNEL_SCHEMA, "filename": "funnel_data.csv"},
-    "marketing_campaigns": {"schema": CAMPAIGN_SCHEMA, "filename": "marketing_campaigns.csv"}, # NEW
-    "marketing_attribution": {"schema": ATTRIBUTION_SCHEMA, "filename": "marketing_attribution.csv"} # NEW
-}
-
-# --- 3. CORE LOGIC ---
-def normalize_headers(df, schema):
-    """Renames DataFrame columns to a clean, consistent format based on the schema."""
+def normalize_headers(df: pd.DataFrame, schema: dict) -> pd.DataFrame:
+    """
+    Case-insensitively renames DataFrame columns based on the schema.
+    This makes the loader resilient to minor changes in CSV header casing.
+    """
     header_map = {}
+    cols_lower = {c.lower(): c for c in df.columns}
     for clean_name, possible_names in schema.items():
-        for possible_name in possible_names:
-            if possible_name in df.columns:
-                header_map[possible_name] = clean_name
+        for pname in possible_names:
+            p_low = pname.lower()
+            if p_low in cols_lower:
+                header_map[cols_lower[p_low]] = clean_name
                 break
-    return df.rename(columns=header_map)
+    
+    df = df.rename(columns=header_map)
+    logging.debug(f"Normalized headers: {df.columns.tolist()}")
+    return df
 
 def bootstrap_database(engine):
-    """Loads all master CSV files from the main directory, completely replacing tables."""
+    """
+    Loads all master CSV files from the main directory, completely replacing
+    all tables in the database. This is for initial setup or a full reset.
+    """
     base_dir = os.path.dirname(os.path.abspath(__file__))
     for table_name, config in TABLE_CONFIG.items():
-        print(f"--- Bootstrapping table: {table_name} ---")
+        logger.info(f"--- Bootstrapping table: {table_name} ---")
         file_path = os.path.join(base_dir, config['filename'])
         try:
-            df = pandas.read_csv(file_path)
-            df = normalize_headers(df, config['schema'])
+            df = pd.read_csv(file_path)
+            df = normalize_headers(df, config['schema_norm'])
             
             # Add calculated columns after cleaning headers
-            if table_name == 'sales':
+            if 'grossvalue' in df.columns and 'discountvalue' in df.columns:
                 df['netsale'] = df['grossvalue'] - df['discountvalue']
             
+            # if_exists='replace' will drop the table first if it exists
             df.to_sql(table_name, engine, if_exists='replace', index=False)
-            print(f"  [SUCCESS] Table '{table_name}' created with {len(df)} rows.")
+            logger.info(f"  [SUCCESS] Table '{table_name}' created with {len(df)} rows.")
         except FileNotFoundError:
-            print(f"  [ERROR] Master file not found: {config['filename']}. Skipping.")
+            logger.error(f"Master file not found: {config['filename']}. Skipping.")
         except Exception as e:
-            print(f"  [ERROR] An unexpected error occurred while processing {config['filename']}: {e}")
+            logger.error(f"An unexpected error occurred while processing {config['filename']}: {e}", exc_info=True)
+            raise  # Stop the entire bootstrap process if any file fails
 
-def process_incoming_file_and_append(filepath, engine):
+def process_incoming_file_and_append(filepath: str, engine) -> bool:
     """
-    Processes a single incoming file and appends it to the appropriate table.
-    This function is called by the scheduler.
+    Processes a single incoming file and appends it to the database.
+    Returns True on success and False on failure.
     """
-    # This is a placeholder for the logic handled by the scheduler script.
-    # In a more advanced architecture, this function would contain the logic
-    # to read a single file, determine its type, and append it to the DB.
-    print(f"Placeholder: Processing and appending file {filepath}")
-    pass
-
-# --- 4. MAIN EXECUTION BLOCK ---
-if __name__ == "__main__":
-    print("--- Running Database Bootstrap Tool ---")
-    print("This tool will completely rebuild all database tables from the master CSV files.")
+    logger.info(f"--- Processing incoming file: {filepath} ---")
+    filename = os.path.basename(filepath).lower()
+    table_name = None
     
-    db_url = get_database_url()
+    # Determine which table this file belongs to based on its prefix
+    for name, config in TABLE_CONFIG.items():
+        if filename.startswith(config.get('file_prefix', '')):
+            table_name = name
+            break
+            
+    if not table_name:
+        logger.warning(f"Unrecognized file prefix for '{filename}'. Skipping.")
+        return False
+
     try:
-        engine = create_engine(db_url)
-        # Test the connection before proceeding
-        with engine.connect() as connection:
-            print("Database connection successful.")
+        df = pd.read_csv(filepath)
+        df = normalize_headers(df, TABLE_CONFIG[table_name]['schema_norm'])
+        
+        if 'grossvalue' in df.columns and 'discountvalue' in df.columns:
+            df['netsale'] = df['grossvalue'] - df['discountvalue']
+        
+        # Use if_exists='append' to add new data without deleting old data
+        df.to_sql(table_name, engine, if_exists='append', index=False)
+        logger.info(f"  [SUCCESS] Appended {len(df)} rows to '{table_name}'.")
+        return True # Return True on success for archiving
     except Exception as e:
-        print(f"\n--- DATABASE CONNECTION FAILED ---")
-        print(f"Could not connect to the PostgreSQL database.")
-        print(f"Attempted URL: {db_url}")
-        print(f"Error details: {e}")
-        sys.exit(1)
+        logger.error(f"Failed to process and append file '{filepath}'. Error: {e}", exc_info=True)
+        return False # Return False on failure
 
-    bootstrap_database(engine)
-    
-    print("\n--- Database bootstrap process finished ---")
+if __name__ == "__main__":
+    logger.info("--- Running Database Bootstrap Tool v21.0 ---")
+    try:
+        engine = get_engine()
+        # The get_engine function already tests the connection
+        bootstrap_database(engine)
+        logger.info("\n--- Database bootstrap process finished successfully ---")
+    except Exception as e:
+        logger.critical(f"\n--- Bootstrap failed. Error: {e}", exc_info=True)
+        sys.exit(1)
 
