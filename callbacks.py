@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Interactive Callbacks Module - V21.1 (Mobile Chart Optimized)
+# Interactive Callbacks Module - V21.0 (Final Master)
 #
-# This module contains all interactive logic.
-# - Updated Pie Chart layouts to move legends to the bottom for better
-#   readability on narrow mobile screens.
+# This module contains all the interactive logic for the application.
+# It is designed to be modular, with helper functions for calculations, and
+# connects all UI components to the data engine.
 # -----------------------------------------------------------------------------
 
 import logging
@@ -22,17 +22,6 @@ from database import get_engine
 from utils import create_kpi_body, create_placeholder_figure
 
 logger = logging.getLogger(__name__)
-
-# --- Helper function for mobile-friendly pie charts ---
-def format_pie_chart(fig):
-    """Helper to move legend to the bottom for mobile readability."""
-    fig.update_layout(
-        legend_orientation="h",  # Horizontal legend
-        legend_y=-0.2,           # Position below the chart
-        legend_x=0.5,            # Center the legend
-        legend_xanchor="center"
-    )
-    return fig
 
 def register_callbacks(app):
     """Registers all application callbacks."""
@@ -112,7 +101,11 @@ def register_callbacks(app):
 
         funnel_fig = create_placeholder_figure("Funnel Data Not Available")
         if not funnel_df.empty:
+            # Get completed orders count from the same filtered data
             completed = filtered_sales[filtered_sales['orderstatus'] == 'Completed']['orderid'].nunique()
+            
+            # FIX: Use the 'total_orders' variable (calculated just above for the KPI)
+            # This ensures the funnel is logical (Fulfilled <= Total Orders) and matches the KPIs.
             funnel_fig = go.Figure(go.Funnel(
                 y=["Visits", "Carts", "Total Orders", "Fulfilled"], 
                 x=[funnel_df['visits'].sum(), funnel_df['carts'].sum(), total_orders, completed], 
@@ -124,17 +117,13 @@ def register_callbacks(app):
         
         category_sales = filtered_sales.groupby('category')['netsale'].sum().reset_index()
         sales_by_cat_fig = px.pie(category_sales, names='category', values='netsale', title='Sales by Category', hole=0.3)
-        # FIX: Apply mobile-friendly legend
-        format_pie_chart(sales_by_cat_fig)
         
         product_sales = filtered_sales.groupby('productname')['netsale'].sum().nlargest(10).reset_index()
         top_prod_fig = px.bar(product_sales, x='netsale', y='productname', orientation='h', title='Top 10 Products').update_layout(yaxis={'categoryorder':'total ascending'})
         
         channel_sales = filtered_sales.groupby('channel')['netsale'].sum().reset_index()
         sales_by_channel_fig = px.pie(channel_sales, names='channel', values='netsale', title='Sales by Channel', hole=0.3)
-        # FIX: Apply mobile-friendly legend
-        format_pie_chart(sales_by_channel_fig)
-
+        
         city_sales = filtered_sales.groupby('city')['netsale'].sum().nlargest(10).reset_index()
         sales_by_city_fig = px.bar(city_sales, x='netsale', y='city', orientation='h', title='Top 10 Cities by Sales').update_layout(yaxis={'categoryorder':'total ascending'})
         
@@ -218,9 +207,7 @@ def register_callbacks(app):
         kpi_churn = create_kpi_body("High Churn Risk", f"{churn_risk_cust:,}")
         
         status_dist_fig = px.pie(status_counts, names=status_counts.index, values=status_counts.values, title='Customer Status Distribution', hole=0.3)
-        # FIX: Apply mobile-friendly legend
-        format_pie_chart(status_dist_fig)
-
+        
         table_df = pd.DataFrame()
         if selected_list == 'top_value':
             table_df = customer_analysis_df.sort_values('monetary', ascending=False).head(20)[['customerid', 'city', 'segment', 'monetary', 'frequency', 'recency']]
@@ -302,9 +289,7 @@ def register_callbacks(app):
         cpa_fig = px.bar(campaign_performance_df, x='campaignname', y='cpa', color='channel', title='CPA by Campaign')
         conv_by_channel = campaign_performance_df.groupby('channel')['conversions'].sum().reset_index()
         conv_channel_fig = px.pie(conv_by_channel, names='channel', values='conversions', title='Conversions by Channel', hole=0.3)
-        # FIX: Apply mobile-friendly legend
-        format_pie_chart(conv_channel_fig)
-
+        
         return kpi_spend, kpi_roas, kpi_cpa, kpi_conv, roas_fig, cpa_fig, conv_channel_fig
 
     @app.callback(
@@ -325,6 +310,7 @@ def register_callbacks(app):
         total_net_profit = profit_df['net_profit'].sum()
         avg_profit_margin = profit_df['profit_margin'].mean()
         returned_orders_df = profit_df[profit_df['orderstatus'] == 'Returned']
+        # FIX: Profit lost is the sum of the net_profit we didn't get to keep from returned orders.
         profit_lost_to_returns = returned_orders_df['net_profit'].sum()
         
         kpi_profit = create_kpi_body("Total Net Profit", f"{total_net_profit:,.2f} SAR")
@@ -381,3 +367,4 @@ def register_callbacks(app):
         fig.update_layout(xaxis_title='Predicted Churn Probability', yaxis_title='Number of Customers')
         
         return kpi_high, kpi_med, kpi_low, fig
+
