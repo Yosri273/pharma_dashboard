@@ -1,52 +1,41 @@
-# app/__init__.py
-import os
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Pharma Analytics Hub - Main Application Package
+#
+# This file initializes the core Dash application object, loads all data,
+# registers the layout, and connects all callbacks.
+# -----------------------------------------------------------------------------
+
 import dash
-import dash_bootstrap_components as dbc
 import logging
-from flask_caching import Cache
-from config.settings import settings
+import sys
+import dash_bootstrap_components as dbc
 
-# 1. Setup Logging
-# Configure logging based on settings before doing anything else
-logging.basicConfig(
-    level=settings.LOG_LEVEL.upper(),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+# Import components from the new modular structure
+from app.layout import create_main_layout
+from app.callbacks import register_callbacks
+from etl.transforms import initialize_data
+from services.db import get_engine
+
+# Configure professional logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout)
 logger = logging.getLogger(__name__)
-logger.info(f"Logging configured at level: {settings.LOG_LEVEL}")
 
-# 2. Initialize Cache
-# This is crucial for performance in Dash apps
-cache = Cache()
-
-# 3. Initialize Dash App
+# --- 1. INITIALIZE APP AND DATA ---
+logger.info("--- Starting Pharma Analytics Hub v21.1 ---")
+# Added Bootstrap Icons per original app.py
 app = dash.Dash(
     __name__,
-    external_stylesheets=[dbc.themes.BOOTSTRAP],
-    suppress_callback_exceptions=True,
-    title=settings.APP_NAME
+    external_stylesheets=[dbc.themes.FLATLY, dbc.icons.BOOTSTRAP],
+    suppress_callback_exceptions=True
 )
-
-# Expose the Flask server for Gunicorn/WSGI
 server = app.server
+app.title = "Pharma Analytics Hub"
 
-# Configure Flask server from settings
-server.config.update(
-    SECRET_KEY=os.urandom(24),
-    CACHE_TYPE='FileSystemCache', # Example: Use filesystem for caching
-    CACHE_DIR='cache-directory'
-)
+engine = get_engine()
+initialize_data(engine)
 
-# 4. Initialize Cache with the app server
-cache.init_app(server)
-logger.info("Cache initialized.")
-
-# 5. Import and Register Layout and Callbacks
-# Import *after* app is created to avoid circular imports
-from app import layout
-from app import callbacks
-
-app.layout = layout.create_layout()
-callbacks.register_callbacks(app)
-
-logger.info("Application factory completed. Layout and callbacks registered.")
+# --- 2. DEFINE APP LAYOUT & REGISTER CALLBACKS ---
+app.layout = create_main_layout()
+register_callbacks(app)
+logger.info("Application ready.")

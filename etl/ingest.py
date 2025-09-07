@@ -1,68 +1,66 @@
-# etl/ingest.py
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Data Ingestion Module
+#
+# Contains functions from pharma_dashboard_backup/load_data.py that are
+# responsible for processing and appending new files.
+# -----------------------------------------------------------------------------
+
 import pandas as pd
-import logging
-from config.settings import settings, BASE_DIR
-from services.db import get_db_engine  # Import the new engine getter
 import os
-from services import db # Import db module to call create_tables
+import logging
+
+# Import from new modular structure
+from config.settings import TABLE_CONFIG
 
 logger = logging.getLogger(__name__)
 
-def load_csv_to_db(csv_path: str, table_name: str):
+def normalize_headers(df: pd.DataFrame, schema: dict) -> pd.DataFrame:
     """
-    Loads data from a CSV and bulk-inserts it into a PostgreSQL table.
-    This replaces existing data in the table completely.
+    Case-insensitively renames DataFrame columns based on the schema.
+    (This function moved from load_data.py)
     """
-    full_path = os.path.join(BASE_DIR, csv_path)
-    engine = get_db_engine()
+    header_map = {}
+    cols_lower = {c.lower(): c for c in df.columns}
+    for clean_name, possible_names in schema.items():
+        for pname in possible_names:
+            p_low = pname.lower()
+            if p_low in cols_lower:
+                header_map[cols_lower[p_low]] = clean_name
+                break
     
-    try:
-        df = pd.read_csv(full_path)
-        # Clean column names just in case
-        df.columns = [col.lower().replace(' ', '_') for col in df.columns] 
+    df = df.rename(columns=header_map)
+    logging.debug(f"Normalized headers for {list(schema.keys())[0]}: {df.columns.tolist()}")
+    return df
 
-        # Ensure timestamp columns are converted before sending to DB
-        if 'order_date' in df.columns:
-             df['order_date'] = pd.to_datetime(df['order_date'])
-
-        # This is the magic: one command to bulk-load the entire dataframe.
-        # 'replace' automatically drops the table if it exists and creates it new
-        # based on the dataframe structure. This is perfect for a full refresh.
-        df.to_sql(
-            table_name,
-            con=engine,
-            if_exists='replace', # Re-create the table every time
-            index=False,         # Don't save the pandas index as a column
-            method='multi'       # Use multi-row INSERTs for speed
-        )
-        
-        logger.info(f"Successfully bulk-loaded {csv_path} to table {table_name}.")
-        
-    except FileNotFoundError:
-        logger.error(f"Data file not found: {full_path}")
-    except Exception as e:
-        logger.error(f"Failed to load data from {csv_path} to {table_name}: {e}", exc_info=True)
-
-def load_all_data():
+def process_incoming_file_and_append(filepath: str, engine) -> bool:
     """
-    Main ingestion function to load all data sources into the database.
-    This is the target job for the scheduler AND the bootstrap script.
+    Processes a single incoming file and appends it to the database.
+    (This function moved from load_data.py)
     """
-    logger.info("Starting data ingestion job...")
+    logger.info(f"--- Processing incoming file: {filepath} ---")
+    filename = os.path.basename(filepath).lower()
+    table_name = None
+    
+    for name, config in TABLE_CONFIG.items():
+        if filename.startswith(config.get('file_prefix', '')):
+            table_name = name
+            break
+            
+    if not table_name:
+        logger.warning(f"Unrecognized file prefix for '{filename}'. Skipping.")
+        return False
+
     try:
-        # CRITICAL: We call create_tables() first to ensure the schema exists.
-        # Since df.to_sql() with 'replace' creates tables, this just acts as a safety check
-        # and ensures any tables NOT from a CSV (if you add them later) also exist.
-        db.create_tables() 
+        df = pd.read_csv(filepath)
+        df = normalize_headers(df, TABLE_CONFIG[table_name]['schema_norm'])
         
-        # Load all our CSVs
-        load_csv_to_db(settings.SALES_DATA_PATH, "sales")
-        load_csv_to_db(settings.CUSTOMER_DATA_PATH, "customers")
-        load_csv_to_db(settings.DELIVERY_DATA_PATH, "delivery")
-        load_csv_to_db(settings.MARKETING_CAMPAIGNS_PATH, "marketing_campaigns")
-        load_csv_to_db(settings.COMPETITOR_DATA_PATH, "competitor_data")
-        load_csv_to_db(settings.MARKETING_ATTRIBUTION_PATH, "marketing_attribution")
-        load_csv_to_db(settings.FUNNEL_DATA_PATH, "funnel")
-        logger.info("Completed data ingestion job.")
+        if 'grossvalue' in df.columns and 'discountvalue' in df.columns:
+            df['netsale'] = df['grossvalue'] - df['discountvalue']
+        
+        df.to_sql(table_name, engine, if_exists='append', index=False)
+        logger.info(f"  [SUCCESS] Appended {len(df)} rows to '{table_name}'.")
+        return True
     except Exception as e:
-        logger.critical(f"Data ingestion job failed: {e}", exc_info=True)
+        logger.error(f"Failed to process and append file '{filepath}'. Error: {e}", exc_info=True)
+        return False

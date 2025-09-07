@@ -1,76 +1,184 @@
-# etl/transforms.py
-import pandas as pd
-from models.domain import DashboardKPIs
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Data Processing Engine - V21.2 (Vectorization Fix)
+#
+# Logic migrated from pharma_dashboard_backup/data.py
+# All import paths updated.
+# -----------------------------------------------------------------------------
 
-def process_sales_data(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Applies core transformations to the raw sales DataFrame.
-    Converts types, handles NaNs, and engineers new features.
-    """
+import logging
+import pandas as pd
+import numpy as np
+from sqlalchemy.engine import Engine
+from typing import Dict
+from datetime import datetime, timedelta
+
+# Import from our new central modules
+from services.db import refresh_all_data, safe_table_exists  # FIX: Path updated
+from app.utils import safe_division                          # FIX: Path updated
+
+logger = logging.getLogger(__name__)
+
+# This global dictionary will act as an in-memory data store for the app.
+DATA: Dict[str, pd.DataFrame] = {}
+
+# --- HELPER FUNCTIONS FOR DATA ENRICHMENT ---
+# (All original functions from data.py preserved exactly)
+
+def _enrich_sales_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Enriches the raw sales data with calculated columns for analysis."""
+    logger.info("Enriching sales data...")
     if df.empty:
+        return df
+    df['netsale'] = df.get('grossvalue', 0) - df.get('discountvalue', 0)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['date'] = df['timestamp'].dt.date
+    df['week'] = df['timestamp'].dt.to_period('W').astype(str)
+    df['month'] = df['timestamp'].dt.to_period('M').astype(str)
+    return df
+
+def _calculate_customer_segments(customers_df: pd.DataFrame, sales_df: pd.DataFrame) -> pd.DataFrame:
+    """Performs RFM analysis and dynamically segments customers."""
+    logger.info("Calculating customer segments...")
+    if customers_df.empty or sales_df.empty:
+        return pd.DataFrame()
+
+    customers_df['joindate'] = pd.to_datetime(customers_df['joindate'])
+    
+    rfm_df = sales_df.groupby('customerid').agg(
+        last_purchase_date=('timestamp', 'max'),
+        frequency=('orderid', 'nunique'),
+        monetary=('netsale', 'sum')
+    ).reset_index()
+    
+    current_date = datetime.now()
+    rfm_df['recency'] = (current_date - rfm_df['last_purchase_date']).dt.days
+    analysis_df = pd.merge(customers_df, rfm_df, on='customerid', how='left')
+
+    def get_status(row):
+        join_recency = (current_date - row['joindate']).days
+        if join_recency <= 90: return 'New'
+        if pd.isna(row['recency']): return 'Never Purchased'
+        if row['recency'] <= 90: return 'Active'
+        if 90 < row['recency'] <= 180: return 'Dormant (At-Risk)'
+        return 'Churn Risk'
+
+    analysis_df['status'] = analysis_df.apply(get_status, axis=1)
+    return analysis_df
+
+def _enrich_delivery_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Enriches raw delivery data with a proper 'date' column for filtering."""
+    logger.info("Enriching delivery data...")
+    if df.empty:
+        return df
+    df['orderdate'] = pd.to_datetime(df['orderdate'])
+    df['date'] = df['orderdate'].dt.date
+    df['actualdeliverydate'] = pd.to_datetime(df['actualdeliverydate'])
+    df['delivery_time_days'] = (df['actualdeliverydate'] - df['orderdate']).dt.days
+    df['promiseddate'] = pd.to_datetime(df['promiseddate'])
+    df['on_time'] = df['actualdeliverydate'] <= df['promiseddate']
+    return df
+
+def _calculate_campaign_performance(sales_df: pd.DataFrame, campaigns_df: pd.DataFrame, attribution_df: pd.DataFrame) -> pd.DataFrame:
+    """Calculates ROAS and CPA for the Marketing tab."""
+    logger.info("Calculating campaign performance dataframe...")
+    if sales_df.empty or campaigns_df.empty or attribution_df.empty:
+        return pd.DataFrame()
+
+    sales_subset = sales_df[['orderid', 'netsale']].drop_duplicates()
+    attributed_sales = pd.merge(attribution_df, sales_subset, on='orderid', how='left')
+
+    campaign_performance = attributed_sales.groupby('campaignid').agg(
+        netsale=('netsale', 'sum'),
+        conversions=('orderid', 'nunique')
+    ).reset_index()
+
+    campaign_analysis_df = pd.merge(campaigns_df, campaign_performance, on='campaignid', how='left')
+    
+    campaign_analysis_df['netsale'] = campaign_analysis_df['netsale'].fillna(0)
+    campaign_analysis_df['conversions'] = campaign_analysis_df['conversions'].fillna(0)
+    
+    campaign_analysis_df['roas'] = np.where(
+        campaign_analysis_df['totalcost'] == 0, 0, 
+        campaign_analysis_df['netsale'] / campaign_analysis_df['totalcost']
+    )
+    campaign_analysis_df['cpa'] = np.where(
+        campaign_analysis_df['conversions'] == 0, 0, 
+        campaign_analysis_df['totalcost'] / campaign_analysis_df['conversions']
+    )
+    
+    return campaign_analysis_df
+
+def _calculate_profit_analysis(sales_df: pd.DataFrame) -> pd.DataFrame:
+    """Creates the profit analysis dataframe based on sales data."""
+    logger.info("Calculating profit analysis dataframe...")
+    if sales_df.empty:
         return pd.DataFrame()
         
-    df_processed = df.copy()
-    df_processed['order_date'] = pd.to_datetime(df_processed['order_date'])
-    df_processed['total_price'] = pd.to_numeric(df_processed['total_price'], errors='coerce')
-    df_processed.dropna(subset=['order_date', 'total_price'], inplace=True)
+    profit_df = sales_df.copy()
+    profit_df['net_profit'] = profit_df['netsale'] - profit_df['costofgoodssold']
     
-    # Example feature: 'month_year' for aggregation
-    df_processed['month_year'] = df_processed['order_date'].dt.to_period('M').astype(str)
-    return df_processed
-
-def get_kpis(df: pd.DataFrame) -> DashboardKPIs:
-    """
-    Calculates key performance indicators from the processed sales data.
-    Returns a validated DashboardKPIs domain model.
-    """
-    if df.empty:
-        # Return default values in the model
-        return DashboardKPIs(total_sales=0.0, avg_order_value=0.0, total_orders=0)
-
-    total_sales = df['total_price'].sum()
-    total_orders = df['order_id'].nunique()
-    avg_order_value = total_sales / total_orders if total_orders > 0 else 0.0
-    
-    # Placeholder for conversion rate if funnel data were joined
-    # conversion_rate = ... 
-
-    return DashboardKPIs(
-        total_sales=total_sales,
-        avg_order_value=avg_order_value,
-        total_orders=total_orders
-        # conversion_rate=conversion_rate
+    profit_df['profit_margin'] = np.where(
+        profit_df['netsale'] == 0, 0, 
+        (profit_df['net_profit'] / profit_df['netsale']) * 100
     )
+    
+    profit_df['total_cost'] = profit_df['costofgoodssold']
+    
+    return profit_df
 
-def get_sales_over_time(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Aggregates sales data by date for time-series plotting.
-    """
-    if df.empty:
-        return pd.DataFrame(columns=['order_date', 'total_price'])
-        
-    sales_ot = df.groupby(df['order_date'].dt.date)['total_price'].sum().reset_index()
-    sales_ot.columns = ['order_date', 'total_sales'] # Rename for clarity
-    return sales_ot.sort_values(by='order_date')
+def _load_prediction_data(engine: Engine) -> pd.DataFrame:
+    """Safely attempts to load the customer churn predictions table."""
+    logger.info("Attempting to load customer prediction data...")
+    table_name = "customer_churn_predictions"
+    try:
+        if safe_table_exists(engine, table_name):
+            df = pd.read_sql_table(table_name, engine)
+            logger.info(f"Successfully loaded {len(df)} rows from '{table_name}'.")
+            return df
+        else:
+            logger.warning(f"Prediction table '{table_name}' not found. Predictive tab will be empty.")
+            return pd.DataFrame()
+    except Exception as e:
+        logger.error(f"Could not load prediction table '{table_name}'. Error: {e}", exc_info=True)
+        return pd.DataFrame()
 
-def get_top_products(df: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
-    """
-    Finds the top N products by total sales revenue.
-    """
-    if df.empty:
-        return pd.DataFrame(columns=['product_name', 'total_sales'])
 
-    top_prod = df.groupby('product_name')['total_price'].sum().nlargest(top_n).reset_index()
-    top_prod.columns = ['product_name', 'total_sales']
-    return top_prod
+# --- MAIN INITIALIZATION FUNCTION ---
+# (Original function from data.py preserved exactly)
+def initialize_data(engine: Engine) -> None:
+    """
+    Main orchestrator to load all raw data from the database and then call the
+    various enrichment and transformation functions. Results are stored in the
+    global DATA dictionary.
+    """
+    
+    raw_data = refresh_all_data(engine)
+    DATA.clear()
+    DATA.update(raw_data)
 
-def get_sales_by_region(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Aggregates sales data by region for pie chart plotting.
-    """
-    if df.empty:
-        return pd.DataFrame(columns=['region', 'total_sales'])
-        
-    region_sales = df.groupby('region')['total_price'].sum().reset_index()
-    region_sales.columns = ['region', 'total_sales']
-    return region_sales
+    if 'sales' in DATA:
+        DATA['sales'] = _enrich_sales_data(DATA.get('sales', pd.DataFrame()))
+
+    if 'customers' in DATA and 'sales' in DATA:
+        DATA['customer_analysis_df'] = _calculate_customer_segments(
+            DATA.get('customers', pd.DataFrame()),
+            DATA.get('sales', pd.DataFrame())
+        )
+
+    if 'deliveries' in DATA:
+        DATA['deliveries'] = _enrich_delivery_data(DATA.get('deliveries', pd.DataFrame()))
+
+    if 'sales' in DATA and 'marketing_campaigns' in DATA and 'marketing_attribution' in DATA:
+        DATA['campaign_performance_df'] = _calculate_campaign_performance(
+            DATA.get('sales', pd.DataFrame()),
+            DATA.get('marketing_campaigns', pd.DataFrame()),
+            DATA.get('marketing_attribution', pd.DataFrame())
+        )
+
+    if 'sales' in DATA:
+        DATA['profit_df'] = _calculate_profit_analysis(DATA.get('sales', pd.DataFrame()))
+
+    DATA['predictions_df'] = _load_prediction_data(engine)
+    
+    logger.info("Data initialization and all enrichments complete. DATA dict is now populated.")

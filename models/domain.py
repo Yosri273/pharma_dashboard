@@ -1,18 +1,18 @@
 # models/domain.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional
 
-class DashboardKPIs(BaseModel):
+class PharmaDashboardKPIs(BaseModel):
     """
-    A Pydantic model representing the key KPIs for the dashboard.
-    This provides type validation and a clear data contract between
-    the transformation logic and the application layer.
+    A validated data model for ALL KPIs calculated for the overview dashboard.
+    This replaces passing around a large, unsafe dictionary.
     """
-    total_sales: float = Field(..., description="Total revenue from all sales.")
-    avg_order_value: float = Field(..., description="Average value of a single order.")
-    total_orders: int = Field(..., description="The total count of unique orders.")
-    conversion_rate: Optional[float] = Field(None, description="The customer conversion rate.")
-
-# Add any other business-specific models here.
-# For example, you could create models for SalesOrder, Customer, etc.
-# if you were building a full API, but for this app, the KPI model is key.
+    total_sales: float = 0.0
+    total_orders: int = 0
+    aov: float = 0.0
+    customer_count: int = 0
+    avg_delivery_time: Optional[float] = None
+    conversion_rate: Optional[float] = None
+    total_spend: float = 0.0
+    cpa: float = 0.0
+    roas: float = 0.0

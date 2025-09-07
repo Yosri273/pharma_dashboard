@@ -1,74 +1,84 @@
-# services/db.py
-import pandas as pd
-import logging
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine
-from config.settings import settings
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Secure Data Access Layer - V21.0 (Final Master)
+#
+# Logic migrated from pharma_dashboard_backup/database.py
+# All import paths updated.
+# -----------------------------------------------------------------------------
 
-# Setup logger
+import logging
+import pandas as pd
+from sqlalchemy import create_engine, inspect
+from sqlalchemy.engine import Engine
+from typing import Dict
+
+# Import from our new central, single source of truth
+from config.settings import settings, TABLE_CONFIG  # FIX: Path updated
+
 logger = logging.getLogger(__name__)
 
-# Create a single, reusable engine. SQLAlchemy handles connection pooling.
-# This engine is created once when the module is imported, using your DATABASE_URL.
-try:
-    engine = create_engine(settings.DATABASE_URL)
-    logger.info("Database engine created successfully.")
-except Exception as e:
-    logger.critical(f"Failed to create database engine: {e}")
-    raise
+_engine = None
 
-def get_db_engine() -> Engine:
-    """Returns the globally configured SQLAlchemy engine."""
-    return engine
+def get_engine() -> Engine:
+    """
+    Creates and returns a single, cached SQLAlchemy engine instance.
+    (Original function from database.py preserved exactly)
+    """
+    global _engine
+    if _engine is None:
+        db_url = settings.DATABASE_URL
+        logger.info(f"Creating new database engine for host: {db_url.split('@')[-1]}")
+        _engine = create_engine(db_url)
+        try:
+            with _engine.connect() as connection:
+                logger.info("Database engine created and connection successful.")
+        except Exception as e:
+            logger.critical(f"Database connection failed on initial creation: {e}", exc_info=True)
+            raise
+    return _engine
 
-def create_tables():
+def safe_table_exists(engine: Engine, table_name: str) -> bool:
     """
-    Executes DDL statements to create all necessary application tables.
-    This uses the same PostgreSQL-compatible DDL from your original file.
+    Securely checks if a table exists using the SQLAlchemy Inspector.
+    (Original function from database.py preserved exactly)
     """
-    # These DDL commands are compatible with PostgreSQL
-    ddl_commands = [
-        """
-        CREATE TABLE IF NOT EXISTS sales (
-            order_id TEXT PRIMARY KEY,
-            order_date TIMESTAMP,
-            customer_id TEXT,
-            product_id TEXT,
-            product_name TEXT,
-            quantity INTEGER,
-            price_per_unit REAL,
-            total_price REAL,
-            region TEXT
-        );
-        """,
-        "CREATE TABLE IF NOT EXISTS customers (customer_id TEXT PRIMARY KEY, segment TEXT);",
-        "CREATE TABLE IF NOT EXISTS delivery (order_id TEXT PRIMARY KEY, status TEXT);",
-        "CREATE TABLE IF NOT EXISTS marketing_campaigns (campaign_id TEXT PRIMARY KEY, spend REAL);",
-        "CREATE TABLE IF NOT EXISTS competitor_data (product_id TEXT PRIMARY KEY, competitor_price REAL);",
-        "CREATE TABLE IF NOT EXISTS marketing_attribution (order_id TEXT PRIMARY KEY, channel TEXT);",
-        "CREATE TABLE IF NOT EXISTS funnel (stage TEXT, count INTEGER);"
-    ]
-    
     try:
-        # The 'with' block handles the connection and transaction automatically
-        with engine.connect() as connection:
-            for command in ddl_commands:
-                connection.execute(text(command))
-            connection.commit()
-        logger.info("Database tables verified/created successfully.")
+        inspector = inspect(engine)
+        return table_name in inspector.get_table_names()
     except Exception as e:
-        logger.error(f"Error creating tables: {e}", exc_info=True)
-        raise
+        logger.error(f"Failed to inspect table existence for '{table_name}': {e}", exc_info=True)
+        return False
 
-def fetch_data(query: str) -> pd.DataFrame:
+def load_data_safely(table_name: str, engine: Engine) -> pd.DataFrame:
     """
-    Executes a SELECT query using the engine and returns a DataFrame.
-    This is much cleaner and safer.
+    Securely loads a full table into a pandas DataFrame.
+    (Original function from database.py preserved exactly)
     """
+    if table_name not in TABLE_CONFIG:
+        logger.error(f"[SECURITY] Attempted to load non-whitelisted table: '{table_name}'")
+        return pd.DataFrame()
+
     try:
-        # pd.read_sql handles the connection automatically using the SQLAlchemy engine
-        df = pd.read_sql(query, engine)
+        if not safe_table_exists(engine, table_name):
+            logger.warning(f"Table '{table_name}' not found. Returning empty DataFrame.")
+            return pd.DataFrame()
+
+        df = pd.read_sql_table(table_name, engine)
+        df.columns = [col.lower() for col in df.columns]
+        logger.info(f"Successfully loaded {len(df)} rows from table '{table_name}'.")
         return df
     except Exception as e:
-        logger.error(f"Error fetching data with query ({query}): {e}")
-        return pd.DataFrame() # Return empty DF on failure
+        logger.error(f"Could not load table '{table_name}'. Error: {e}", exc_info=True)
+        return pd.DataFrame()
+
+def refresh_all_data(engine: Engine) -> Dict[str, pd.DataFrame]:
+    """
+    Loads all tables defined in the config into a dictionary of DataFrames.
+    (Original function from database.py preserved exactly)
+    """
+    logger.info("--- Refreshing all data from database ---")
+    dataframes = {}
+    for table_name in TABLE_CONFIG.keys():
+        dataframes[table_name] = load_data_safely(table_name, engine)
+    logger.info("--- Data refresh complete ---")
+    return dataframes

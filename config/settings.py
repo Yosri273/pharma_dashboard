@@ -1,36 +1,81 @@
-# config/settings.py
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Central Configuration Module - V21.0 (Final Master)
+#
+# Logic migrated from pharma_dashboard_backup/config.py
+# This is the single source of truth for all application settings.
+# -----------------------------------------------------------------------------
+
 import os
+import re
+import logging
+import sys
 from pydantic_settings import BaseSettings
-from typing import Literal
+from typing import Dict, List, Any
 
-# Get the project root directory
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+# --- 1. Pydantic Settings Class ---
+# (Original code from config.py)
 class Settings(BaseSettings):
-    """
-    Application-wide settings managed by Pydantic.
-    Values are loaded from environment variables or a .env file.
-    """
-    APP_NAME: str = "E-Commerce Analytics Dashboard"
-    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    """Defines all application settings and their types via environment variables."""
+    DB_USER: str = "mohamedyousri"
+    DB_PASSWORD: str = ""
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_NAME: str = "pharma_db"
     
-    # Database settings
-    DATABASE_URL: str = f"sqlite:///{os.path.join(BASE_DIR, 'sales.db')}"
-
-    # Paths to data files (relative to project root)
-    # In a real enterprise app, these might be S3 URIs or API endpoints
-    SALES_DATA_PATH: str = "sales_data.csv"
-    CUSTOMER_DATA_PATH: str = "customer_data.csv"
-    DELIVERY_DATA_PATH: str = "delivery_data.csv"
-    MARKETING_CAMPAIGNS_PATH: str = "marketing_campaigns.csv"
-    COMPETITOR_DATA_PATH: str = "competitor_data.csv"
-    MARKETING_ATTRIBUTION_PATH: str = "marketing_attribution.csv"
-    FUNNEL_DATA_PATH: str = "funnel_data.csv"
-
     class Config:
-        # This tells Pydantic to look for a .env file in the project root
-        env_file = os.path.join(BASE_DIR, ".env")
+        env_file = ".env"
         env_file_encoding = 'utf-8'
 
-# Create a single, importable instance of the settings
+    @property
+    def DATABASE_URL(self) -> str:
+        """Constructs the final database URL, applying necessary fixes."""
+        if 'DATABASE_URL' in os.environ:
+            db_url = os.environ['DATABASE_URL']
+            db_url = re.sub(r'^postgres(?!\w)', 'postgresql', db_url)
+            if "render.com" in db_url and "?sslmode=require" not in db_url:
+                db_url += "?sslmode=require"
+            return db_url
+        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
 settings = Settings()
+
+# --- 2. Centralized Data Schemas ---
+# (Original code from config.py)
+SALES_SCHEMA_NORM: Dict[str, List[str]] = {
+    'orderid': ['OrderID', 'order_id'], 'timestamp': ['Timestamp', 'order_date'], 
+    'productid': ['ProductID', 'product_sku'], 'productname': ['ProductName'],
+    'category': ['Category'], 'quantity': ['Quantity', 'qty'], 'grossvalue': ['GrossValue'], 
+    'discountvalue': ['DiscountValue'], 'costofgoodssold': ['CostOfGoodsSold', 'cogs'], 
+    'customerid': ['CustomerID', 'user_id'], 'city': ['City', 'store_city'], 
+    'locationid': ['LocationID', 'store_id'], 'channel': ['Channel'], 'orderstatus': ['OrderStatus', 'status']
+}
+DELIVERY_SCHEMA_NORM: Dict[str, List[str]] = {
+    'deliveryid': ['DeliveryID'], 'orderid': ['OrderID'], 'orderdate': ['OrderDate'], 
+    'promiseddate': ['PromisedDate'], 'actualdeliverydate': ['ActualDeliveryDate'], 
+    'status': ['Status'], 'deliverypartner': ['DeliveryPartner'], 'city': ['City'], 
+    'deliverycost': ['DeliveryCost']
+}
+CUSTOMER_SCHEMA_NORM: Dict[str, List[str]] = { 'customerid': ['CustomerID'], 'joindate': ['JoinDate'], 'city': ['City'], 'segment': ['Segment'] }
+FUNNEL_SCHEMA_NORM: Dict[str, List[str]] = { 'week': ['Week'], 'visits': ['Visits'], 'carts': ['Carts'], 'orders': ['Orders'] }
+COMPETITOR_SCHEMA_NORM: Dict[str, List[str]] = { 'date': ['Date'], 'competitor': ['Competitor'], 'productid': ['ProductID'], 'productname': ['ProductName'], 'price': ['Price'], 'onpromotion': ['OnPromotion'] }
+CAMPAIGN_SCHEMA_NORM: Dict[str, List[str]] = {
+    'campaignid': ['CampaignID'], 'campaignname': ['CampaignName'], 'channel': ['Channel'], 
+    'startdate': ['StartDate'], 'enddate': ['EndDate'], 'totalcost': ['TotalCost'], 
+    'impressions': ['Impressions'], 'clicks': ['Clicks']
+}
+ATTRIBUTION_SCHEMA_NORM: Dict[str, List[str]] = { 'orderid': ['OrderID'], 'campaignid': ['CampaignID'] }
+
+TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
+    "sales": {"schema_norm": SALES_SCHEMA_NORM, "filename": "sales_data.csv", "file_prefix": "sales_"},
+    "deliveries": {"schema_norm": DELIVERY_SCHEMA_NORM, "filename": "delivery_data.csv", "file_prefix": "delivery_"},
+    "customers": {"schema_norm": CUSTOMER_SCHEMA_NORM, "filename": "customer_data.csv", "file_prefix": "customer_"},
+    "sales_funnel": {"schema_norm": FUNNEL_SCHEMA_NORM, "filename": "funnel_data.csv", "file_prefix": "funnel_"},
+    "marketing_campaigns": {"schema_norm": CAMPAIGN_SCHEMA_NORM, "filename": "marketing_campaigns.csv", "file_prefix": "campaigns_"},
+    "marketing_attribution": {"schema_norm": ATTRIBUTION_SCHEMA_NORM, "filename": "marketing_attribution.csv", "file_prefix": "attribution_"}
+}
+
+# Configure professional logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
+logger = logging.getLogger(__name__)
+logger.info(f"Configuration loaded. DB Target: {settings.DATABASE_URL.split('@')[-1]}")
