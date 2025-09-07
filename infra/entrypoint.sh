@@ -13,4 +13,5 @@ echo "Bootstrap successful. Starting web server..."
 
 # 'exec' replaces the shell with the Gunicorn process.
 # This binds to the PORT variable that Render provides automatically.
-exec gunicorn run:server --bind 0.0.0.0:${PORT}
+# This is the correct command:
+exec gunicorn app:server --bind 0.0.0.0:${PORT}
