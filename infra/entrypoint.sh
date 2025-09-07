@@ -5,7 +5,7 @@ echo "Starting Application Entrypoint..."
 
 # Run the bootstrap script to initialize the database
 echo "Running bootstrap script to set up database..."
-python scripts/bootstrap.py
+python -m scripts.bootstrap
 
 # Check if bootstrap was successful (e.g., check if db file exists)
 if [ ! -f "sales.db" ]; then
