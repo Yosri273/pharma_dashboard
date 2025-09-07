@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Interactive Callbacks Module - V21.0 (Final Master)
+# Interactive Callbacks Module - V23.0 (Predictive Extension)
 #
-# Logic migrated from pharma_dashboard_backup/callbacks.py
-# All import paths updated to new modular structure.
+# Added new callbacks for forecasting, simulation, churn, and LTV.
+# Removed obsolete callback for the old predictive layout.
 # -----------------------------------------------------------------------------
 
 import logging
@@ -11,14 +11,20 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, callback_context, dcc, html
+from dash import Input, Output, State, callback_context, dcc, html, dash_table
 from dash.exceptions import PreventUpdate
-from datetime import datetime
+from datetime import datetime, timedelta
+import numpy as np
 
 # Import from our new central modules
 from etl.transforms import DATA, initialize_data  # FIX: Path updated
 from services.db import get_engine                  # FIX: Path updated
 from app.utils import create_kpi_body, create_placeholder_figure # FIX: Path updated
+
+# --- NEW IMPORTS FOR PREDICTIVE ANALYTICS ---
+from services.storage import load_model_artifact
+from models.predictors import DemandForecaster, ChurnPredictor # Need class definitions for joblib
+from models.features import build_rfm_features
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +56,7 @@ def register_callbacks(app):
             "sales-tab": create_sales_layout, "delivery-tab": create_delivery_layout,
             "customer-tab": create_customer_layout,
             "marketing-tab": create_marketing_layout, "profit-tab": create_profit_layout,
-            "predictive-tab": create_predictive_layout
+            "predictive-tab": create_predictive_layout  # This now points to our new advanced layout
         }
         return layouts.get(active_tab, lambda: html.H4("Tab not found."))()
 
@@ -221,14 +227,14 @@ def register_callbacks(app):
         return kpi_total, kpi_active, kpi_dormant, kpi_churn, status_dist_fig, data, columns
 
     # --- CONSOLIDATED EXPORT CALLBACK ---
-    # (Original callback logic preserved exactly)
+    # (LOGIC FOR 'export-churn-button' REMOVED as button is obsolete in new layout)
     @app.callback(
         Output("download-dataframe-csv", "data"),
-        [Input("export-csv-button", "n_clicks"), Input("export-churn-button", "n_clicks")],
+        [Input("export-csv-button", "n_clicks")], # Removed churn button input
         [State("customer-list-selector", "value")],
         prevent_initial_call=True,
     )
-    def export_data(customer_clicks, churn_clicks, selected_list):
+    def export_data(customer_clicks, selected_list):
         ctx = callback_context
         if not ctx.triggered: raise PreventUpdate
 
@@ -246,12 +252,6 @@ def register_callbacks(app):
             elif selected_list == 'new':
                 df_to_export = customer_analysis_df[customer_analysis_df['status'] == 'New']
             filename = f"{selected_list}_customers_{datetime.now().strftime('%Y-%m-%d')}.csv"
-
-        elif button_id == "export-churn-button":
-            predictions_df = DATA.get('predictions_df', pd.DataFrame())
-            if predictions_df.empty: raise PreventUpdate
-            df_to_export = predictions_df[predictions_df['churn_probability'] > 0.7]
-            filename = f"high_churn_risk_customers_{datetime.now().strftime('%Y-%m-%d')}.csv"
 
         if not df_to_export.empty:
             return dcc.send_data_frame(df_to_export.to_csv, filename, index=False)
@@ -342,29 +342,197 @@ def register_callbacks(app):
         
         return kpi_profit, kpi_margin, kpi_returns, profit_by_channel_fig, profit_by_cat_fig, high_margin_fig, low_margin_fig, recommendation_list
 
-    # (Original callback logic preserved exactly)
+    # --- [OBSOLETE] PREDICTIVE DASHBOARD CALLBACK ---
+    # The original update_predictive_dashboard callback is REMOVED
+    # as its layout components no longer exist.
+    
+
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # --- NEW: PREDICTIVE ANALYTICS CALLBACKS (TAB 4) ---
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
     @app.callback(
-        [Output('kpi-high-risk-customers', 'children'), Output('kpi-med-risk-customers', 'children'),
-         Output('kpi-low-risk-customers', 'children'), Output('churn-risk-distribution-chart', 'figure')],
-        [Input('data-store-trigger', 'data'), Input('tabs-controller', 'active_tab')]
+        Output('pred-kpi-forecast-rev', 'children'),
+        Output('pred-kpi-sim-lift', 'children'),
+        Output('forecast-simulation-chart', 'figure'),
+        Input('forecast-run-button', 'n_clicks'),
+        State('forecast-slider-days', 'value'),
+        State('forecast-slider-promo', 'value'),
+        prevent_initial_call=True
     )
-    def update_predictive_dashboard(_, active_tab):
-        if active_tab != 'predictive-tab': raise PreventUpdate
-        predictions_df = DATA.get('predictions_df', pd.DataFrame())
-        if predictions_df.empty:
-            placeholder = create_placeholder_figure("Churn Prediction Model Not Available")
-            empty_kpi = create_kpi_body("No Data", "-")
-            return empty_kpi, empty_kpi, empty_kpi, placeholder
+    def update_forecast_simulation(n_clicks, forecast_days, promo_pct):
+        """
+        Loads the trained Prophet model and runs the baseline forecast
+        AND the "what-if" simulation based on user inputs.
+        """
+        if n_clicks == 0 or n_clicks is None:
+            raise PreventUpdate
 
-        high_risk = predictions_df[predictions_df['churn_probability'] > 0.7].shape[0]
-        med_risk = predictions_df[(predictions_df['churn_probability'] > 0.4) & (predictions_df['churn_probability'] <= 0.7)].shape[0]
-        low_risk = predictions_df[predictions_df['churn_probability'] <= 0.4].shape[0]
+        # 1. Load the trained Forecaster object from storage
+        forecaster: DemandForecaster = load_model_artifact('demand_forecaster_main.joblib')
+        if forecaster is None:
+            logger.error("Forecast model artifact not found. Please run the training schedule.")
+            return create_kpi_body("Error", "-"), create_kpi_body("Error", "-"), create_placeholder_figure("Model Not Trained")
 
-        kpi_high = create_kpi_body("High Risk (>70%)", f"{high_risk:,}")
-        kpi_med = create_kpi_body("Medium Risk (40-70%)", f"{med_risk:,}")
-        kpi_low = create_kpi_body("Low Risk (<40%)", f"{low_risk:,}")
+        # 2. Run simulation
+        # predict_simulation handles the case where promo_pct is 0 (returns baseline)
+        forecast_df = forecaster.predict_simulation(forecast_days, promo_pct)
 
-        fig = px.histogram(predictions_df, x='churn_probability', nbins=50, title='Distribution of Customer Churn Risk')
-        fig.update_layout(xaxis_title='Predicted Churn Probability', yaxis_title='Number of Customers')
+        # 3. Create Figure
+        fig = go.Figure()
         
-        return kpi_high, kpi_med, kpi_low, fig
+        # Get history (actuals)
+        history_df = forecaster.model.history
+        fig.add_trace(go.Scatter(
+            x=history_df['ds'], y=history_df['y'],
+            mode='lines',
+            name='Actual Sales',
+            line=dict(color='#111111', width=2)
+        ))
+
+        # Separate baseline and simulation data
+        baseline_fc = forecast_df[forecast_df['forecast_type'] == 'Baseline']
+        sim_fc = forecast_df[forecast_df['forecast_type'] == 'Simulation']
+        
+        # Plot Baseline Forecast
+        fig.add_trace(go.Scatter(
+            x=baseline_fc['ds'], y=baseline_fc['yhat'],
+            mode='lines',
+            name='Baseline Forecast',
+            line=dict(color='blue', width=2, dash='dot')
+        ))
+        # Plot Baseline Confidence Interval (as a transparent fill)
+        fig.add_trace(go.Scatter(
+            x=baseline_fc['ds'], y=baseline_fc['yhat_upper'],
+            mode='lines', line=dict(width=0), fill=None, showlegend=False
+        ))
+        fig.add_trace(go.Scatter(
+            x=baseline_fc['ds'], y=baseline_fc['yhat_lower'],
+            mode='lines', line=dict(width=0),
+            fill='tonexty', fillcolor='rgba(0,100,255,0.1)',
+            name='Confidence Interval'
+        ))
+
+        # Plot Simulation Forecast (if it exists and is different from baseline)
+        if not sim_fc.empty and promo_pct > 0:
+             fig.add_trace(go.Scatter(
+                x=sim_fc['ds'], y=sim_fc['yhat'],
+                mode='lines',
+                name=f'Simulation (+{promo_pct}%)',
+                line=dict(color='green', width=3)
+            ))
+
+        # 4. Calculate KPIs for the *future* period only
+        analysis_start_date = pd.to_datetime(datetime.now().date())
+        analysis_end_date = analysis_start_date + timedelta(days=forecast_days)
+
+        future_baseline_val = baseline_fc[
+            (baseline_fc['ds'] >= analysis_start_date) & (baseline_fc['ds'] <= analysis_end_date)
+        ]['yhat'].sum()
+        
+        future_sim_val = 0.0
+        if not sim_fc.empty:
+            future_sim_val = sim_fc[
+                (sim_fc['ds'] >= analysis_start_date) & (sim_fc['ds'] <= analysis_end_date)
+            ]['yhat'].sum()
+        
+        if pd.isna(future_sim_val) or future_sim_val == 0:
+            future_sim_val = future_baseline_val # Set to baseline if no simulation was run
+            
+        sim_lift = future_sim_val - future_baseline_val
+
+        kpi_rev_text = create_kpi_body("Forecasted Revenue", f"{future_baseline_val:,.0f} SAR")
+        kpi_lift_text = create_kpi_body("Simulated Lift", f"{sim_lift:,.0f} SAR")
+
+        fig.update_layout(title=f"Baseline Forecast vs. Simulation (+{promo_pct}%)", hovermode="x unified")
+        
+        return kpi_rev_text, kpi_lift_text, fig
+
+
+    @app.callback(
+        Output('pred-kpi-churn-rate', 'children'),
+        Output('pred-kpi-churn-auc', 'children'),
+        Output('pred-kpi-churn-revenue', 'children'),
+        Output('pred-kpi-ltv', 'children'),
+        Output('churn-key-drivers-chart', 'figure'),
+        Output('churn-at-risk-table', 'data'),
+        Output('churn-at-risk-table', 'columns'),
+        Input('tabs-controller', 'active_tab') # Trigger when user clicks Predictive Tab
+    )
+    def update_churn_dashboard(active_tab):
+        """
+        When the predictive tab is opened, load the churn model and the latest
+        data to populate all churn visuals.
+        """
+        if active_tab != 'predictive-tab':
+            raise PreventUpdate
+
+        # 1. Load the Churn Predictor object and metrics from artifact storage
+        churn_predictor: ChurnPredictor = load_model_artifact('churn_predictor_main.joblib')
+        metrics = load_model_artifact('churn_metrics.joblib')
+
+        if churn_predictor is None or metrics is None:
+            logger.error("Churn model artifacts not found. Please run training schedule.")
+            fig_placeholder = create_placeholder_figure("Model Not Trained")
+            kpi_error = create_kpi_body("Error", "N/A")
+            return kpi_error, kpi_error, kpi_error, kpi_error, fig_placeholder, [], []
+
+        # 2. Load the LATEST data from the in-memory store (refreshed by ETL job)
+        sales_df = DATA.get('sales', pd.DataFrame())
+        customer_df = DATA.get('customers', pd.DataFrame())
+        
+        if sales_df.empty or customer_df.empty:
+            fig_placeholder = create_placeholder_figure("Sales/Customer Data Missing")
+            kpi_error = create_kpi_body("Error", "No Data")
+            return kpi_error, kpi_error, kpi_error, kpi_error, fig_placeholder, [], []
+
+        analysis_date = pd.to_datetime(datetime.now())
+
+        # 3. Build the features for the CURRENT customer base (live scoring)
+        latest_features_df = build_rfm_features(sales_df, customer_df, analysis_date)
+        
+        # 4. Run Predictions & LTV calculation
+        predictions_df = churn_predictor.predict_churn_probability(latest_features_df)
+        
+        # 5. Calculate KPIs
+        # KPI: Churn Rate (Define "likely to churn" as P > 50%. This threshold is tunable.)
+        likely_churn_mask = predictions_df['ChurnProbability'] > 0.5
+        likely_churn_count = predictions_df[likely_churn_mask]['customerid'].nunique()
+        total_customers = predictions_df['customerid'].nunique()
+        churn_rate_pct = (likely_churn_count / total_customers) * 100
+        kpi_churn_rate = create_kpi_body("Predicted Churn Rate", f"{churn_rate_pct:.1f}%")
+        
+        # KPI: Model Accuracy (from last training run)
+        kpi_auc = create_kpi_body("Model AUC Score", f"{metrics.get('auc', 0):.3f}")
+        
+        # KPI: At-Risk Revenue (Historical Monetary value of customers likely to churn)
+        at_risk_revenue = predictions_df[likely_churn_mask]['Monetary'].sum()
+        kpi_risk_rev = create_kpi_body("Total At-Risk Revenue", f"{at_risk_revenue:,.0f} SAR")
+        
+        # KPI: Avg LTV (Avg. estimated LTV for "Active" customers (Churn prob <= 50%))
+        active_ltv = predictions_df[~likely_churn_mask]['Estimated_LTV'].mean()
+        kpi_ltv = create_kpi_body("Avg. LTV (Active)", f"{active_ltv:,.0f} SAR")
+
+        # 6. Generate Key Drivers Plot (SHAP values from the model object)
+        drivers_df = churn_predictor.get_key_drivers_df().head(10) # Get top 10
+        fig_drivers = px.bar(
+            drivers_df,
+            y='Feature',
+            x='FeatureImportance',
+            orientation='h',
+            title='Top 10 Key Drivers of Churn (SHAP)'
+        ).update_layout(yaxis={'categoryorder':'total ascending'})
+
+        # 7. Generate At-Risk Table Data
+        cols_to_show = ['customerid', 'City', 'Segment', 'Recency', 'Frequency', 'Monetary', 'ChurnProbability', 'Estimated_LTV']
+        at_risk_df = predictions_df[likely_churn_mask][cols_to_show].head(50)
+        
+        # Format for Dash Table
+        at_risk_df['ChurnProbability'] = at_risk_df['ChurnProbability'].map('{:.1%}'.format)
+        at_risk_df['Estimated_LTV'] = at_risk_df['Estimated_LTV'].map('{:,.0f} SAR'.format)
+        at_risk_df['Monetary'] = at_risk_df['Monetary'].map('{:,.0f}'.format)
+        
+        table_cols = [{"name": i.replace("_", " ").title(), "id": i} for i in at_risk_df.columns]
+        table_data = at_risk_df.to_dict('records')
+
+        return kpi_churn_rate, kpi_auc, kpi_risk_rev, kpi_ltv, fig_drivers, table_data, table_cols

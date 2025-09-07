@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Central Configuration Module - V21.0 (Final Master)
+# Central Configuration Module - V21.2 (Predictive Pathing Fix)
 #
-# Logic migrated from pharma_dashboard_backup/config.py
-# This is the single source of truth for all application settings.
+# Moved path constants AFTER pydantic instantiation to resolve parser conflict.
 # -----------------------------------------------------------------------------
 
 import os
@@ -39,6 +38,13 @@ class Settings(BaseSettings):
         return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
 settings = Settings()
+
+# --- NEW: Path Constants (Correct Location) ---
+# Define module-level path constants AFTER the Pydantic class is instantiated.
+# This prevents the Pydantic parser conflict error.
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_STORE_PATH = os.path.join(BASE_DIR, 'model_store')
+
 
 # --- 2. Centralized Data Schemas ---
 # (Original code from config.py)
@@ -79,3 +85,4 @@ TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
 logger = logging.getLogger(__name__)
 logger.info(f"Configuration loaded. DB Target: {settings.DATABASE_URL.split('@')[-1]}")
+logger.info(f"Model storage path set to: {MODEL_STORE_PATH}") # This log will now correctly use the constant

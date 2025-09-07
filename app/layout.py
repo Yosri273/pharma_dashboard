@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# UI Layouts Module - V22.0 (Modern UI Redesign)
+# UI Layouts Module - V23.0 (Predictive Analytics Extension)
 #
-# Logic migrated from pharma_dashboard_backup/layouts.py
-# Imports updated to new structure.
+# Predictive layout replaced with multi-tab forecasting and churn analysis.
+# Added new reusable components and client-side stores for models.
 # -----------------------------------------------------------------------------
 
 import dash_bootstrap_components as dbc
@@ -14,17 +14,55 @@ import pandas as pd
 from etl.transforms import DATA
 
 # --- 1. REUSABLE UI COMPONENTS ---
-# (Original code from layouts.py)
+
 def create_kpi_card(title: str, kpi_id: str, color: str, width: int = 4, md_width: int = 6) -> dbc.Col:
     """Creates a Bootstrap Column containing a KPI Card."""
     return dbc.Col(dbc.Card(id=kpi_id, color=color, inverse=True), lg=width, md=md_width, sm=12, class_name="mb-4")
 
-def create_graph_card(graph_id: str, width: int = 6) -> dbc.Col:
-    """Creates a Bootstrap Column containing a Graph component in a Card."""
-    return dbc.Col(dbc.Card(dbc.CardBody(dcc.Graph(id=graph_id))), md=width, class_name="mb-4")
+def create_graph_card(graph_id: str, title: str = None, width: int = 6, lg_width: int = None) -> dbc.Col:
+    """
+    Creates a Bootstrap Column containing a Graph component in a Card.
+    Added title parameter and responsive lg_width.
+    """
+    card_content = [dcc.Graph(id=graph_id)]
+    if title:
+        card_content.insert(0, html.H5(title, className="card-title"))
+        
+    # Use lg_width if provided, otherwise default to width
+    lg_col_width = lg_width if lg_width is not None else width
+        
+    return dbc.Col(
+        dbc.Card(dbc.CardBody(card_content)), 
+        lg=lg_col_width, 
+        md=width, 
+        sm=12, 
+        class_name="mb-4"
+    )
+
+def create_datatable_card(table_id: str, title: str, width: int = 6, lg_width: int = None) -> dbc.Col:
+    """NEW: Creates a Bootstrap Column containing a DataTable in a Card."""
+    lg_col_width = lg_width if lg_width is not None else width
+    
+    return dbc.Col(
+        dbc.Card(dbc.CardBody([
+            html.H5(title, className="card-title"),
+            dash_table.DataTable(
+                id=table_id,
+                style_cell={'textAlign': 'left'},
+                style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'},
+                page_size=10,
+                sort_action='native'
+            )
+        ])),
+        lg=lg_col_width,
+        md=width,
+        sm=12,
+        class_name="mb-4"
+    )
+
 
 # --- 2. DASHBOARD LAYOUT FUNCTIONS ---
-# (All original functions from layouts.py are preserved exactly)
+# (All existing layouts are preserved)
 
 def create_sales_layout() -> dbc.Container:
     """Creates the layout for the Sales Command Center."""
@@ -156,32 +194,97 @@ def create_profit_layout() -> dbc.Container:
         dbc.Row([create_graph_card('high-margin-products-chart'), create_graph_card('low-margin-products-chart')]),
     ], fluid=True)
 
+
+# --- NEW: PREDICTIVE ANALYTICS LAYOUT (COMPLETE REPLACEMENT) ---
+
+def _create_forecast_tab() -> dbc.Tab:
+    """NEW HELPER: Layout for Forecasting and Promo Simulation."""
+    return dbc.Tab(label="Demand Forecasting & Promotion Simulation", children=[
+        dbc.Row([
+            # Controls
+            dbc.Col(dbc.Card([
+                dbc.CardBody([
+                    html.H5("Simulation Controls"),
+                    dbc.Label("Forecast Horizon (Days):"),
+                    dcc.Slider(
+                        id="forecast-slider-days", min=30, max=180, step=30, value=90, 
+                        marks={30:'30', 90:'90', 180:'180'}, tooltip={"placement": "bottom", "always_visible": True}
+                    ),
+                    html.Hr(),
+                    dbc.Label("Simulate Promotion Uplift (% Increase):"),
+                    dcc.Slider(
+                        id="forecast-slider-promo", min=0, max=50, step=5, value=0, 
+                        marks={i: f"{i}%" for i in range(0, 51, 10)}, tooltip={"placement": "bottom", "always_visible": True}
+                    ),
+                    dbc.Button("Run Simulation", id="forecast-run-button", color="primary", className="mt-4 w-100")
+                ])
+            ]), lg=3, md=12, className="mb-4"),
+            
+            # KPIs and Main Graph
+            dbc.Col([
+                dbc.Row([
+                    create_kpi_card("Forecasted Revenue (Baseline)", "pred-kpi-forecast-rev", "primary", width=6, md_width=6),
+                    create_kpi_card("Simulated Revenue Lift (Promo)", "pred-kpi-sim-lift", "success", width=6, md_width=6),
+                ]),
+                dbc.Row([
+                    create_graph_card(
+                        graph_id="forecast-simulation-chart", 
+                        title="Demand Forecast & Promotion Simulation", 
+                        width=12
+                    )
+                ])
+            ], lg=9, md=12)
+        ], className="mt-3")
+    ])
+
+def _create_churn_tab() -> dbc.Tab:
+    """NEW HELPER: Layout for Customer Churn Prediction."""
+    return dbc.Tab(label="Customer Churn & LTV", children=[
+         dbc.Row([
+            # KPIs
+            create_kpi_card("Predicted Churn Rate", "pred-kpi-churn-rate", "danger", width=3, md_width=6),
+            create_kpi_card("Model AUC Score", "pred-kpi-churn-auc", "info", width=3, md_width=6),
+            create_kpi_card("Total At-Risk Revenue", "pred-kpi-churn-revenue", "warning", width=3, md_width=6),
+            create_kpi_card("Avg. LTV (Active Customer)", "pred-kpi-ltv", "success", width=3, md_width=6),
+         ], className="mt-3"),
+         
+         dbc.Row([
+            # Key Drivers Chart
+            create_graph_card(
+                graph_id="churn-key-drivers-chart", 
+                title="Key Drivers of Churn (Feature Importance)", 
+                lg_width=5,
+                width=12
+            ),
+            
+            # At-Risk Customer Table
+            create_datatable_card(
+                table_id="churn-at-risk-table", 
+                title="Top Customers At-Risk of Churn",
+                lg_width=7,
+                width=12
+            )
+         ])
+    ])
+
 def create_predictive_layout() -> dbc.Container:
-    """Creates the layout for the Predictive Insights dashboard."""
-    predictions_df = DATA.get('predictions_df', pd.DataFrame())
-    if predictions_df.empty:
-        return dbc.Container([
-            html.H4("Churn Prediction Model Not Available", className="text-center mt-5"),
-            html.P("Please run the 'model_trainer.py' script to enable this feature.", className="text-center")
-        ])
+    """
+    NEW: Creates the layout for the Predictive Insights dashboard.
+    This function replaces the original. It provides sub-tabs for the
+    new predictive models (Forecasting and Churn).
+    """
     return dbc.Container([
         dbc.Row([
-            create_kpi_card("High Risk (>70%)", "kpi-high-risk-customers", "danger"),
-            create_kpi_card("Medium Risk (40-70%)", "kpi-med-risk-customers", "warning"),
-            create_kpi_card("Low Risk (<40%)", "kpi-low-risk-customers", "success"),
+            dbc.Col(html.H4("Predictive Analytics & Simulations"), width=12, className="mb-3")
         ]),
-        dbc.Row([create_graph_card('churn-risk-distribution-chart', width=12)]),
-        html.Hr(className="my-4"),
-        dbc.Card(dbc.CardBody([
-            dbc.Row([
-                dbc.Col(html.H4("High-Risk Customer List for Retention Campaign"), width=10),
-                dbc.Col(dbc.Button(["Export List ", html.I(className="bi bi-download")], id="export-churn-button", color="secondary"), width=2),
-            ]),
-            dbc.Row([
-                dbc.Col(dash_table.DataTable(id='churn-data-table', style_cell={'textAlign': 'left'}, style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'}, page_size=10, sort_action='native'), className="mt-3")
-            ]),
-        ])),
+        
+        # Sub-tabs for different models
+        dbc.Tabs([
+            _create_forecast_tab(),
+            _create_churn_tab()
+        ])
     ], fluid=True)
+
 
 # --- 3. MAIN APPLICATION LAYOUT ---
 def create_main_layout() -> html.Div:
@@ -198,6 +301,13 @@ def create_main_layout() -> html.Div:
     return html.Div([
         dcc.Store(id='data-store-trigger'),
         dcc.Download(id="download-dataframe-csv"),
+        
+        # --- NEW: Client-side model stores ---
+        # These stores hold the loaded model artifacts in the user's browser session 
+        # to avoid slow disk I/O on every callback interaction.
+        dcc.Store(id='store-forecast-model'),
+        dcc.Store(id='store-churn-model'),
+        
         navbar,
         dbc.Container([
             dbc.Tabs(id="tabs-controller", active_tab="sales-tab", children=[
