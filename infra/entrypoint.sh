@@ -1,25 +1,16 @@
 #!/bin/sh
-# infra/entrypoint.sh
 
-echo "Starting Application Entrypoint..."
+# Exit immediately if any command fails
+set -e
 
-# Run the bootstrap script to initialize the database
+# 1. Run the Database Bootstrap Script
 echo "Running bootstrap script to set up database..."
 python -m scripts.bootstrap
 
-# Check if bootstrap was successful (e.g., check if db file exists)
-if [ ! -f "sales.db" ]; then
-    echo "Database file was not created. Bootstrap failed. Exiting."
-    exit 1
-fi
+# 2. Start the Gunicorn Web Server
+# If the script gets here, bootstrap was successful.
+echo "Bootstrap successful. Starting web server..."
 
-echo "Bootstrap complete. Starting Gunicorn server..."
-
-# Start the Gunicorn production server
-# It points to "app:server" which is the 'server' object in 'app/__init__.py'
-exec gunicorn "app:server" \
-    --bind 0.0.0.0:8000 \
-    --workers 4 \
-    --log-level $LOG_LEVEL \
-    --access-logfile - \
-    --error-logfile -
+# 'exec' replaces the shell with the Gunicorn process.
+# This binds to the PORT variable that Render provides automatically.
+exec gunicorn run:server --bind 0.0.0.0:${PORT}
