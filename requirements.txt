@@ -67,3 +67,4 @@ w3lib==2.3.1
 websockets==10.4
 Werkzeug==3.0.6
 zipp==3.23.0
+pytest==8.4.2

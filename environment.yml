@@ -1,0 +1,28 @@
+# environment.yml
+name: ecom-analytics  # This will be the name of your conda environment
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10  # Or whatever Python version you prefer
+  - pip
+  # Core App
+  - dash
+  - pandas
+  - dash-bootstrap-components
+  - plotly
+  - gunicorn
+  # Scheduler
+  - apscheduler
+  # Config & Caching
+  - pydantic-settings
+  - flask-caching
+  # Database (IMPORTANT)
+  - sqlalchemy
+  - psycopg2  # The driver for PostgreSQL (psycopg2-binary is pip-only)
+  # Testing
+  - pytest
+  # Any other non-pip dependencies go here
+  - pip:
+    # Use pip for anything not easily found on conda-forge
+    - any-pip-only-package
