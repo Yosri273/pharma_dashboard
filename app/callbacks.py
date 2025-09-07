@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, callback_context, dcc, html, dash_table
+from dash import Input, Output, State, callback_context, dcc, html, dash_table, callback
 from dash.exceptions import PreventUpdate
 from datetime import datetime, timedelta
 import numpy as np
@@ -32,6 +32,17 @@ def register_callbacks(app):
     """Registers all application callbacks."""
 
     # --- MAIN CALLBACKS ---
+
+    @callback(
+    Output("navbar-collapse", "is_open"),
+    [Input("navbar-toggler", "n_clicks")],
+    [State("navbar-collapse", "is_open")],
+)
+    def toggle_navbar_collapse(n, is_open):
+        """Callback to toggle the mobile hamburger menu."""
+        if n:
+            return not is_open
+        return is_open
 
     @app.callback(
         Output('data-store-trigger', 'data'),

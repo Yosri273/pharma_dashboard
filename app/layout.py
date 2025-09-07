@@ -17,6 +17,7 @@ from etl.transforms import DATA
 
 def create_kpi_card(title: str, kpi_id: str, color: str, width: int = 4, md_width: int = 6) -> dbc.Col:
     """Creates a Bootstrap Column containing a KPI Card."""
+    # This is already mobile-first: sm=12 stacks it vertically on small screens.
     return dbc.Col(dbc.Card(id=kpi_id, color=color, inverse=True), lg=width, md=md_width, sm=12, class_name="mb-4")
 
 def create_graph_card(graph_id: str, title: str = None, width: int = 6, lg_width: int = None) -> dbc.Col:
@@ -35,12 +36,15 @@ def create_graph_card(graph_id: str, title: str = None, width: int = 6, lg_width
         dbc.Card(dbc.CardBody(card_content)), 
         lg=lg_col_width, 
         md=width, 
-        sm=12, 
+        sm=12, # This sm=12 is key for mobile responsiveness
         class_name="mb-4"
     )
 
 def create_datatable_card(table_id: str, title: str, width: int = 6, lg_width: int = None) -> dbc.Col:
-    """NEW: Creates a Bootstrap Column containing a DataTable in a Card."""
+    """
+    NEW: Creates a Bootstrap Column containing a DataTable in a Card.
+    MODIFIED: Added style_table={'overflowX': 'auto'} to prevent mobile page scroll.
+    """
     lg_col_width = lg_width if lg_width is not None else width
     
     return dbc.Col(
@@ -51,7 +55,10 @@ def create_datatable_card(table_id: str, title: str, width: int = 6, lg_width: i
                 style_cell={'textAlign': 'left'},
                 style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'},
                 page_size=10,
-                sort_action='native'
+                sort_action='native',
+                # --- MOBILE OPTIMIZATION ADDED ---
+                # This makes the table scroll horizontally *within the card* # instead of breaking the entire page layout on mobile.
+                style_table={'overflowX': 'auto'}
             )
         ])),
         lg=lg_col_width,
@@ -62,7 +69,7 @@ def create_datatable_card(table_id: str, title: str, width: int = 6, lg_width: i
 
 
 # --- 2. DASHBOARD LAYOUT FUNCTIONS ---
-# (All existing layouts are preserved)
+# (All existing layouts are preserved - they are already responsive via the reusable components)
 
 def create_sales_layout() -> dbc.Container:
     """Creates the layout for the Sales Command Center."""
@@ -137,8 +144,9 @@ def create_customer_layout() -> dbc.Container:
                 dbc.Col(dcc.RadioItems(id='customer-list-selector', options=[{'label': 'Top-Value Customers', 'value': 'top_value'}, {'label': 'High Churn Risk', 'value': 'churn_risk'}, {'label': 'New Customers', 'value': 'new'}], value='top_value', inline=True, labelClassName="me-3"), md=6),
             ], align="center"),
             dbc.Row([
-                dbc.Col(dash_table.DataTable(id='customer-data-table', style_cell={'textAlign': 'left'}, style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'}, page_size=10), width=10, className="mt-3"),
-                dbc.Col(dbc.Button(["Export ", html.I(className="bi bi-download")], id="export-csv-button", color="primary", className="mt-3 w-100"), width=2),
+                # Use our mobile-friendly datatable card here
+                create_datatable_card(table_id='customer-data-table', title="", width=10),
+                dbc.Col(dbc.Button(["Export ", html.I(className="bi bi-download")], id="export-csv-button", color="primary", className="mt-3 w-100"), lg=2, md=12, sm=12),
             ]),
         ])),
     ], fluid=True)
@@ -201,7 +209,7 @@ def _create_forecast_tab() -> dbc.Tab:
     """NEW HELPER: Layout for Forecasting and Promo Simulation."""
     return dbc.Tab(label="Demand Forecasting & Promotion Simulation", children=[
         dbc.Row([
-            # Controls
+            # Controls - will stack on mobile (lg=3, md=12)
             dbc.Col(dbc.Card([
                 dbc.CardBody([
                     html.H5("Simulation Controls"),
@@ -218,7 +226,7 @@ def _create_forecast_tab() -> dbc.Tab:
                     ),
                     dbc.Button("Run Simulation", id="forecast-run-button", color="primary", className="mt-4 w-100")
                 ])
-            ]), lg=3, md=12, className="mb-4"),
+            ]), lg=3, md=12, className="mb-4"), # md=12 ensures it's full-width on tablet and mobile
             
             # KPIs and Main Graph
             dbc.Col([
@@ -241,7 +249,7 @@ def _create_churn_tab() -> dbc.Tab:
     """NEW HELPER: Layout for Customer Churn Prediction."""
     return dbc.Tab(label="Customer Churn & LTV", children=[
          dbc.Row([
-            # KPIs
+            # KPIs stack correctly with sm=12 (via md_width=6 and the default component logic)
             create_kpi_card("Predicted Churn Rate", "pred-kpi-churn-rate", "danger", width=3, md_width=6),
             create_kpi_card("Model AUC Score", "pred-kpi-churn-auc", "info", width=3, md_width=6),
             create_kpi_card("Total At-Risk Revenue", "pred-kpi-churn-revenue", "warning", width=3, md_width=6),
@@ -249,20 +257,20 @@ def _create_churn_tab() -> dbc.Tab:
          ], className="mt-3"),
          
          dbc.Row([
-            # Key Drivers Chart
+            # Key Drivers Chart (stacks first on mobile)
             create_graph_card(
                 graph_id="churn-key-drivers-chart", 
                 title="Key Drivers of Churn (Feature Importance)", 
                 lg_width=5,
-                width=12
+                width=5 # This becomes md=12, and sm=12 is the default, so it's full-width on mobile
             ),
             
-            # At-Risk Customer Table
+            # At-Risk Customer Table (stacks second on mobile)
             create_datatable_card(
                 table_id="churn-at-risk-table", 
                 title="Top Customers At-Risk of Churn",
                 lg_width=7,
-                width=12
+                width=7 # Full-width on mobile
             )
          ])
     ])
@@ -288,27 +296,60 @@ def create_predictive_layout() -> dbc.Container:
 
 # --- 3. MAIN APPLICATION LAYOUT ---
 def create_main_layout() -> html.Div:
-    """Creates the main application layout, including the new Navbar and tabs."""
-    navbar = dbc.NavbarSimple(
-        children=[
-            dbc.Button(
-                ["Refresh Data ", html.I(className="bi bi-arrow-clockwise")],
-                id="refresh-data-button", color="secondary", className="ms-auto"
+    """
+    Creates the main application layout.
+    MODIFIED: Replaced NavbarSimple with a fully collapsible Navbar for mobile.
+    """
+    
+    # --- NEW: Collapsible Navbar ---
+    # We replace NavbarSimple with a full Navbar to get the mobile hamburger menu
+    navbar = dbc.Navbar(
+        dbc.Container([
+            html.A(
+                dbc.Row(
+                    [
+                        # You could add a logo/icon here with dbc.Col
+                        dbc.Col(dbc.NavbarBrand("Pharma Analytics Hub", className="ms-2")),
+                    ],
+                    align="center",
+                    className="g-0", # g-0 removes gutters
+                ),
+                href="#",
+                style={"textDecoration": "none"},
             ),
-        ],
-        brand="Pharma Analytics Hub", brand_href="#", color="primary", dark=True, className="mb-4"
+            dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
+            dbc.Collapse(
+                dbc.Nav(
+                    [
+                        dbc.Button(
+                            ["Refresh Data ", html.I(className="bi bi-arrow-clockwise")],
+                            id="refresh-data-button", color="secondary"
+                        )
+                    ], 
+                    # 'ms-auto' pushes the button to the right on desktop
+                    # 'p-2' adds padding on mobile when it's stacked vertically
+                    className="ms-auto p-2", 
+                    navbar=True
+                ),
+                id="navbar-collapse",
+                is_open=False,
+                navbar=True,
+            ),
+        ], fluid=True),
+        color="primary",
+        dark=True,
+        className="mb-4"
     )
+    
     return html.Div([
         dcc.Store(id='data-store-trigger'),
         dcc.Download(id="download-dataframe-csv"),
         
-        # --- NEW: Client-side model stores ---
-        # These stores hold the loaded model artifacts in the user's browser session 
-        # to avoid slow disk I/O on every callback interaction.
+        # --- Client-side model stores (Good for performance!) ---
         dcc.Store(id='store-forecast-model'),
         dcc.Store(id='store-churn-model'),
         
-        navbar,
+        navbar, # Use the new navbar object
         dbc.Container([
             dbc.Tabs(id="tabs-controller", active_tab="sales-tab", children=[
                 dbc.Tab(label="Sales", tab_id="sales-tab"),
