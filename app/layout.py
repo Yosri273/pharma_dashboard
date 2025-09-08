@@ -553,7 +553,7 @@ def create_main_layout() -> html.Div:
                 dbc.Row(
                     [
                         # You could add a logo/icon here with dbc.Col
-                        dbc.Col(dbc.NavbarBrand("Pharma Analytics Hub", className="ms-2")),
+                        dbc.Col(dbc.NavbarBrand("Yosri Analytics Hub", className="ms-2")),
                     ],
                     align="center",
                     className="g-0", # g-0 removes gutters
