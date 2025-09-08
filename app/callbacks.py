@@ -47,7 +47,7 @@ if PROJECT_ROOT not in sys.path:
 
 MODEL_STORE_PATH = os.path.join(PROJECT_ROOT, "model_store")
 if not os.path.exists(MODEL_STORE_PATH):
-    os.makedirs(MODEL_STORE_PATH)
+    os.makedirs(MODEL_STORE_PATH, exist_ok=True)
     logger.info(f"Created model store directory: {MODEL_STORE_PATH}")
 
 CHURN_MODEL_PATH = os.path.join(MODEL_STORE_PATH, 'churn_predictor_main.joblib')

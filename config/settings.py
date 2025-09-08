@@ -12,6 +12,7 @@ import sys
 from pydantic_settings import BaseSettings
 from typing import Dict, List, Any
 from dotenv import load_dotenv  # <-- 1. ADD THIS IMPORT
+from pathlib import Path
 
 # --- ADD THIS LINE ---
 load_dotenv()  # This finds and loads the .env file from the project root
@@ -47,8 +48,7 @@ settings = Settings()
 # Define module-level path constants AFTER the Pydantic class is instantiated.
 # This prevents the Pydantic parser conflict error.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_STORE_PATH = os.path.join(BASE_DIR, 'model_store')
-
+MODEL_STORE_PATH = Path(os.environ.get("MODEL_STORE_PATH", "model_store"))
 
 # --- 2. Centralized Data Schemas ---
 # (Original code from config.py)
