@@ -86,3 +86,19 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 logger.info(f"Configuration loaded. DB Target: {settings.DATABASE_URL.split('@')[-1]}")
 logger.info(f"Model storage path set to: {MODEL_STORE_PATH}") # This log will now correctly use the constant
+
+# --- NEW: SMTP & REPORTING AUTOMATION SETTINGS ---
+# These settings are used by the automated report distribution service.
+
+# SMTP Server Configuration (Example using Gmail/Google Workspace)
+# For production, NEVER hardcode these. Set them as environment variables.
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+SMTP_USER = os.environ.get("SMTP_USER", None) # e.g., "your-service-account@your-company.com"
+# For Google, this is an "App Password", not your real password
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", None) 
+
+# Automated Report Recipient Lists
+# Define recipients as a comma-separated string in environment variables
+_default_recipients = "regional.manager@pharma.com,ceo@pharma.com"
+REPORT_RECIPIENTS_LIST = os.environ.get("REPORT_RECIPIENTS", _default_recipients).split(",")

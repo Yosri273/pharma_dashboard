@@ -68,6 +68,6 @@ websockets==10.4
 Werkzeug==3.0.6
 zipp==3.23.0
 pytest==8.4.2
-fpdf2
-kaleido
-xgboost
+fpdf2==2.8.4
+kaleido==1.0.0
+xgboost==3.0.5

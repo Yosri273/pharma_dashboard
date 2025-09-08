@@ -154,3 +154,107 @@ def start_scheduler():
     # run_forecast_training_pipeline()
     # run_churn_training_pipeline()
     # logger.info("BOOTSTRAP JOBS COMPLETE.")
+
+    """
+Module for running scheduled ETL tasks and automated jobs.
+NEW: Added functions for automated report data generation.
+"""
+import pandas as pd
+import plotly.express as px
+from datetime import datetime, timedelta
+from sqlalchemy.engine import Engine
+
+# Import project components needed for the job
+from services.db import get_engine
+from app.reporting import generate_pdf_report # Reuse our PDF generator
+# This logic will live here, separate from the mailer
+# from services.mailer import send_report_email 
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _get_weekly_sales_report_data(engine: Engine) -> dict:
+    """
+    Connects to the DB and generates all data objects needed for the weekly sales report.
+    
+    This function re-implements the logic from the Dash callback but in a "headless"
+    state, running calculations directly from the database for a fixed period.
+    """
+    logger.info("Generating weekly sales report payload...")
+    
+    # 1. Load data
+    try:
+        # Instead of the global DATA dict, query the DB for fresh data
+        sales_df = pd.read_sql_table("sales_fact", engine, parse_dates=["date"])
+    except Exception as e:
+        logger.error(f"Failed to read 'sales_fact' from DB: {e}. Aborting report.")
+        return None
+        
+    if sales_df.empty:
+        logger.warning("No sales data found in database. Aborting report.")
+        return None
+
+    # 2. Define Filter Context (Fixed for this automated report)
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=7)
+    
+    filter_context = {
+        "Report Period": "Last 7 Days",
+        "Start Date": start_date.isoformat(),
+        "End Date": end_date.isoformat(),
+        "Regions": ["All"],
+        "Categories": ["All"]
+    }
+    
+    # 3. Filter DataFrame
+    date_mask = (sales_df['date'].dt.date >= start_date) & (sales_df['date'].dt.date <= end_date)
+    filtered_sales = sales_df.loc[date_mask].copy()
+
+    if filtered_sales.empty:
+        logger.warning(f"No sales data found for the period {start_date} to {end_date}.")
+        return None
+
+    # 4. Calculate KPIs (logic copied from callbacks.py)
+    total_revenue = filtered_sales['netsale'].sum()
+    total_cogs = filtered_sales['costofgoodssold'].sum()
+    net_profit = total_revenue - total_cogs
+    gross_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+    total_orders = filtered_sales['orderid'].nunique()
+    aov = total_revenue / total_orders if total_orders > 0 else 0
+
+    kpi_data = {
+        "Total Revenue": f"{total_revenue:,.2f} SAR",
+        "Gross Margin": f"{gross_margin:.2f}%",
+        "Net Profit": f"{net_profit:,.2f} SAR",
+        "Total Orders": f"{total_orders:,}",
+        "Avg Order Value": f"{aov:,.2f} SAR"
+    }
+
+    # 5. Generate Figures (logic copied from callbacks.py)
+    time_grouped = filtered_sales.groupby('date')['netsale'].sum().reset_index()
+    sales_over_time_fig = px.line(time_grouped, x='date', y='netsale', title='Net Sales Trend (Last 7 Days)')
+    
+    category_sales = filtered_sales.groupby('category')['netsale'].sum().reset_index()
+    sales_by_cat_fig = px.pie(category_sales, names='category', values='netsale', title='Sales by Category', hole=0.3)
+    
+    channel_sales = filtered_sales.groupby('channel')['netsale'].sum().reset_index()
+    sales_by_channel_fig = px.pie(channel_sales, names='channel', values='netsale', title='Sales by Channel', hole=0.3)
+    
+    figures_list = [sales_over_time_fig, sales_by_cat_fig, sales_by_channel_fig]
+
+    # 6. Generate Main Table (logic copied from callbacks.py)
+    main_table_df = filtered_sales.groupby('productname')['netsale'].sum().nlargest(10).reset_index()
+    
+    logger.info("Successfully generated report data payload.")
+    
+    # Return the exact payload our PDF generator expects
+    return {
+        "kpi_data": kpi_data,
+        "filters_dict": filter_context,
+        "main_dataframe": main_table_df,
+        "figures_list": figures_list,
+        "report_title": "Weekly Sales Summary Report",
+        "table_title": "Top 10 Products (Last 7 Days)"
+    }
