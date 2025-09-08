@@ -1,0 +1,38 @@
+This file defines all automated KPI alerts for the business.
+Business users can add or modify alerts here without changing any code.
+The 'kpi_check_function' must match a function name in 'alerting/checks.py'.
+alerts:
+
+name: "Critical Daily Sales Drop"
+enabled: true
+kpi_check_function: "check_daily_sales_drop"
+
+Parameters to pass to the check function
+parameters:
+percentage_drop_threshold: 20.0 # Alert if sales drop > 20% vs. 7-day avg
+
+Who to notify
+channels: ["email", "slack"]
+recipients:
+email: ["exec-team@yourcompany.com", "sales-leads@yourcompany.com"]
+slack_channel: "#sales-alerts" # Slack channel name (or user ID)
+
+name: "High-Priority Delayed Deliveries"
+enabled: true
+kpi_check_function: "check_delayed_deliveries"
+parameters:
+delay_hours_threshold: 48
+priority_level: "HIGH" # Check only HIGH priority orders
+channels: ["slack"]
+recipients:
+slack_channel: "#logistics-ops"
+
+name: "High-Value Customer Inactivity"
+enabled: true
+kpi_check_function: "check_inactive_high_value_customers"
+parameters:
+inactive_days_threshold: 14
+value_segment: "Tier 1"
+channels: ["email"]
+recipients:
+email: ["account-managers@yourcompany.com"]

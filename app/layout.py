@@ -3,6 +3,8 @@
 # UI Layouts Module - V23.1 (Predictive Analytics Fallback Update)
 #
 # Added Loading wrappers and signal stores for predictive tabs.
+# Added PDF Downloaders and new filters/buttons for PDF exports.
+# Added Alerting UI components.
 # -----------------------------------------------------------------------------
 
 import dash_bootstrap_components as dbc
@@ -32,7 +34,7 @@ def create_multi_filter_options(option_list):
 
 
 # --- 1. REUSABLE UI COMPONENTS ---
-# (All reusable components create_kpi_card, create_graph_card, etc. remain unchanged)
+# (All original reusable components preserved)
 
 def create_kpi_card(title: str, kpi_id: str, color: str, width: int = 4, md_width: int = 6) -> dbc.Col:
     """Creates a Bootstrap Column containing a KPI Card."""
@@ -87,8 +89,7 @@ def create_datatable_card(table_id: str, title: str, width: int = 6, lg_width: i
     )
 
 # --- 2. DASHBOARD LAYOUT FUNCTIONS ---
-# (All other layout functions: create_sales_layout, create_delivery_layout, etc. remain unchanged)
-# ... (Keep all your existing layout functions here) ...
+# (All original layout functions preserved, but upgraded with new filters and PDF export buttons)
 
 def create_sales_layout() -> dbc.Container:
     """Creates the layout for the Sales Command Center."""
@@ -102,7 +103,7 @@ def create_sales_layout() -> dbc.Container:
     region_opts = sales_df['city'].unique()
 
     return dbc.Container([
-        # --- MODIFIED: Added Export button in a ButtonGroup ---
+        # --- MODIFIED: Added Export button and new filters ---
         dbc.Card(dbc.CardBody([
             dbc.Row([
                 dbc.Col([
@@ -139,7 +140,7 @@ def create_sales_layout() -> dbc.Container:
                 dbc.Col([
                     html.Label("Channel:"),
                     dcc.Dropdown(
-                        id='channel-filter-dropdown', # Kept original ID from file
+                        id='channel-filter-dropdown', # Kept original ID
                         options=create_filter_options(channel_opts),
                         value='All',
                         clearable=False
@@ -155,14 +156,14 @@ def create_sales_layout() -> dbc.Container:
                         value='date',
                         inline=True
                     )
-                ], width=12, lg=2, className="mb-2 align-self-center"),
+                ], width=12, lg=1, className="mb-2 align-self-center"),
                 dbc.Col([
                     html.Label("Actions", style={'visibility': 'hidden'}),  # Spacer label
                     dbc.ButtonGroup([
                         dbc.Button("Apply", id="sales-apply-btn", color="primary"),
                         dbc.Button("Export PDF", id="sales-export-btn", color="secondary") # NEW EXPORT BUTTON
                     ], className="w-100")
-                ], width=12, lg=1, className="mb-2 align-self-end"),
+                ], width=12, lg=2, className="mb-2 align-self-end"),
             ], align="bottom"),
         ]), className="mb-4"),
         # --- END OF MODIFICATION ---
@@ -193,7 +194,7 @@ def create_delivery_layout() -> dbc.Container:
     region_opts = delivery_df['city'].unique() # City is on delivery_df
     
     return dbc.Container([
-        # --- MODIFIED: Added Export button in a ButtonGroup ---
+        # --- MODIFIED: Added Export button and new filters ---
         dbc.Card(dbc.CardBody([
             dbc.Row([
                  dbc.Col([
@@ -257,7 +258,7 @@ def create_customer_layout() -> dbc.Container:
     segment_opts = customer_analysis_df['segment'].unique()
     
     return dbc.Container([
-        # --- MODIFIED: Added Export button in a ButtonGroup ---
+        # --- MODIFIED: Added Export button and new filters ---
         dbc.Card(dbc.CardBody([
             dbc.Row([
                  dbc.Col([
@@ -324,7 +325,7 @@ def create_customer_layout() -> dbc.Container:
 
 def create_competitor_layout() -> dbc.Container:
     """Creates the layout for the Market Intelligence dashboard."""
-    # (This layout remains unchanged as its callback was not requested for modification)
+    # (This original layout is preserved unchanged)
     competitor_df = DATA.get('competitors', pd.DataFrame())
     price_comparison_df = DATA.get('price_comparison_df', pd.DataFrame())
     if competitor_df.empty or price_comparison_df.empty:
@@ -348,7 +349,7 @@ def create_marketing_layout() -> dbc.Container:
     channel_opts = campaign_performance_df['channel'].unique()
     
     return dbc.Container([
-        # --- MODIFIED: Added Export button in a ButtonGroup ---
+        # --- MODIFIED: Added Export button and new filters ---
         dbc.Card(dbc.CardBody([
             dbc.Row([
                  dbc.Col([
@@ -402,7 +403,7 @@ def create_profit_layout() -> dbc.Container:
     category_opts = profit_df['category'].unique()
 
     return dbc.Container([
-        # --- MODIFIED: Added Export button in a ButtonGroup ---
+        # --- MODIFIED: Added Export button and new filters ---
         dbc.Card(dbc.CardBody([
             dbc.Row([
                  dbc.Col([
@@ -460,12 +461,12 @@ def create_profit_layout() -> dbc.Container:
     ], fluid=True)
 
 
-# --- NEW: PREDICTIVE ANALYTICS LAYOUT (COMPLETE REPLACEMENT) ---
-# (This section remains unchanged as it already uses 'Apply' button logic and is not a standard report)
+# --- PREDICTIVE ANALYTICS LAYOUT (UPGRADED) ---
+# (Contains the original forecast tab layout and the NEW dynamic loading wrapper for the churn tab)
 
 def _create_forecast_tab() -> dbc.Tab:
     """NEW HELPER: Layout for Forecasting and Promo Simulation."""
-    # This tab layout is unchanged, as its callback is triggered by a button press.
+    # This tab layout is unchanged from your original, as its callback is triggered by a button press.
     return dbc.Tab(label="Demand Forecasting & Promotion Simulation", children=[
         dbc.Row([
             # Controls - will stack on mobile (lg=3, md=12)
@@ -542,18 +543,19 @@ def create_predictive_layout() -> dbc.Container:
 def create_main_layout() -> html.Div:
     """
     Creates the main application layout.
-    MODIFIED: Added new dcc.Download component for PDFs.
+    MODIFIED: Added new dcc.Download component for PDFs, Alert components,
+    and the model training signal store.
+    MERGED: Restored original "Pharma Analytics Hub" brand name.
     """
     
-    # --- NEW: Collapsible Navbar ---
-    # (Navbar definition remains unchanged)
+    # --- Collapsible Navbar (Original) ---
     navbar = dbc.Navbar(
         dbc.Container([
             html.A(
                 dbc.Row(
                     [
-                        # You could add a logo/icon here with dbc.Col
-                        dbc.Col(dbc.NavbarBrand("Yosri Analytics Hub", className="ms-2")),
+                        # MERGE: Restored original brand name
+                        dbc.Col(dbc.NavbarBrand("Pharma Analytics Hub", className="ms-2")),
                     ],
                     align="center",
                     className="g-0", # g-0 removes gutters
@@ -570,8 +572,6 @@ def create_main_layout() -> html.Div:
                             id="refresh-data-button", color="secondary"
                         )
                     ], 
-                    # 'ms-auto' pushes the button to the right on desktop
-                    # 'p-2' adds padding on mobile when it's stacked vertically
                     className="ms-auto p-2", 
                     navbar=True
                 ),
@@ -586,18 +586,27 @@ def create_main_layout() -> html.Div:
     )
     
     return html.Div([
+        # --- NEW: Alerting Components ---
+        dcc.Interval(
+            id='alert-poll-interval',
+            interval=60 * 1000,  # 60 seconds
+            n_intervals=0
+        ),
+        html.Div(id='active-alert-banner-container', style={'padding': '10px'}),
+        # ---------------------------------
+        
         dcc.Store(id='data-store-trigger'),
         dcc.Download(id="download-dataframe-csv"),
         dcc.Download(id="download-dashboard-pdf"), # <-- *** NEW PDF DOWNLOADER ***
         
-        # --- Client-side model stores (Good for performance!) ---
+        # --- Client-side model stores (Original) ---
         dcc.Store(id='store-forecast-model'),
         dcc.Store(id='store-churn-model'),
         
         # --- NEW: Signal store to trigger model tab refreshes after training ---
         dcc.Store(id='model-training-signal-store', data=0),
         
-        navbar, # Use the new navbar object
+        navbar, # Use the navbar object
         dbc.Container([
             dbc.Tabs(id="tabs-controller", active_tab="sales-tab", children=[
                 dbc.Tab(label="Sales", tab_id="sales-tab"),
