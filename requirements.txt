@@ -29,12 +29,12 @@ lxml_html_clean==0.4.2
 MarkupSafe==3.0.2
 mypy_extensions==1.1.0
 nest-asyncio==1.6.0
-numpy==2.3.2
+numpy<=2.2
 packaging==25.0
 pandas==2.3.2
 pandera==0.26.1
 parse==1.20.2
-plotly==5.18.0
+plotly==6.1.1
 psycopg2-binary==2.9.10
 pydantic==2.11.7
 pydantic-settings==2.10.1
@@ -68,3 +68,5 @@ websockets==10.4
 Werkzeug==3.0.6
 zipp==3.23.0
 pytest==8.4.2
+fpdf2
+kaleido

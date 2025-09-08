@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# UI Layouts Module - V23.0 (Predictive Analytics Extension)
+# UI Layouts Module - V23.1 (Predictive Analytics Fallback Update)
 #
-# Predictive layout replaced with multi-tab forecasting and churn analysis.
-# Added new reusable components and client-side stores for models.
+# Added Loading wrappers and signal stores for predictive tabs.
 # -----------------------------------------------------------------------------
 
 import dash_bootstrap_components as dbc
@@ -13,7 +12,27 @@ import pandas as pd
 # FIX: Import the global data store from its new location in etl.transforms
 from etl.transforms import DATA
 
+# --- NEW: HELPER LISTS & FUNCTIONS FOR FILTERS ---
+# (Derived from source data CSVs)
+ALL_REGIONS = ['Riyadh', 'Jeddah', 'Dammam']
+ALL_CATEGORIES = [
+    'Vitamins', 'Personal Care', 'Skincare', 'Supplements', 'Pain Relief',
+    'Medical Devices', 'First Aid', 'Wellness'
+]
+ALL_SEGMENTS = ['Gold', 'Silver', 'Bronze', 'New', 'Churn Risk', 'Loyal', 'At-Risk'] # Expanded list from RFM
+
+def create_filter_options(option_list):
+    """Helper to create 'All' + options list for single-select dropdowns."""
+    return [{'label': 'All', 'value': 'All'}] + [{'label': opt, 'value': opt} for opt in sorted(list(option_list))]
+
+def create_multi_filter_options(option_list):
+    """Helper to create options list for multi-select dropdowns."""
+    # 'All' value is handled in the callback logic for multi-select
+    return [{'label': 'All', 'value': 'All'}] + [{'label': opt, 'value': opt} for opt in sorted(list(option_list))]
+
+
 # --- 1. REUSABLE UI COMPONENTS ---
+# (All reusable components create_kpi_card, create_graph_card, etc. remain unchanged)
 
 def create_kpi_card(title: str, kpi_id: str, color: str, width: int = 4, md_width: int = 6) -> dbc.Col:
     """Creates a Bootstrap Column containing a KPI Card."""
@@ -67,9 +86,9 @@ def create_datatable_card(table_id: str, title: str, width: int = 6, lg_width: i
         class_name="mb-4"
     )
 
-
 # --- 2. DASHBOARD LAYOUT FUNCTIONS ---
-# (All existing layouts are preserved - they are already responsive via the reusable components)
+# (All other layout functions: create_sales_layout, create_delivery_layout, etc. remain unchanged)
+# ... (Keep all your existing layout functions here) ...
 
 def create_sales_layout() -> dbc.Container:
     """Creates the layout for the Sales Command Center."""
@@ -77,14 +96,76 @@ def create_sales_layout() -> dbc.Container:
     if sales_df.empty:
         return dbc.Container(html.H4("Sales Data Not Available", className="text-center mt-5"))
     
+    # Get dynamic options from the dataframe
+    channel_opts = sales_df['channel'].unique()
+    category_opts = sales_df['category'].unique()
+    region_opts = sales_df['city'].unique()
+
     return dbc.Container([
+        # --- MODIFIED: Added Export button in a ButtonGroup ---
         dbc.Card(dbc.CardBody([
             dbc.Row([
-                dbc.Col(dcc.Dropdown(id='channel-filter-dropdown', options=[{'label': 'All Channels', 'value': 'All'}] + [{'label': ch, 'value': ch} for ch in sorted(sales_df['channel'].unique())], value='All', clearable=False), md=5),
-                dbc.Col(dcc.DatePickerRange(id='sales-date-picker', min_date_allowed=sales_df['date'].min(), max_date_allowed=sales_df['date'].max(), start_date=sales_df['date'].min(), end_date=sales_df['date'].max()), md=5),
-                dbc.Col(dcc.RadioItems(id='time-agg-selector', options=[{'label': 'Daily', 'value': 'date'}, {'label': 'Weekly', 'value': 'week'}, {'label': 'Monthly', 'value': 'month'}], value='date', inline=True), md=2),
-            ], align="center"),
+                dbc.Col([
+                    html.Label("Date Range:"),
+                    dcc.DatePickerRange(
+                        id='sales-date-picker',
+                        min_date_allowed=sales_df['date'].min(),
+                        max_date_allowed=sales_df['date'].max(),
+                        start_date=sales_df['date'].min(),
+                        end_date=sales_df['date'].max(),
+                        className="d-block"
+                    )
+                ], width=12, lg=3, className="mb-2"),
+                dbc.Col([
+                    html.Label("Region (City):"),
+                    dcc.Dropdown(
+                        id='sales-region-filter',
+                        options=create_multi_filter_options(region_opts),
+                        value=['All'], # Default to 'All'
+                        multi=True,
+                        clearable=False
+                    )
+                ], width=12, lg=2, className="mb-2"),
+                dbc.Col([
+                    html.Label("Category:"),
+                    dcc.Dropdown(
+                        id='sales-category-filter',
+                        options=create_multi_filter_options(category_opts),
+                        value=['All'],
+                        multi=True,
+                        clearable=False
+                    )
+                ], width=12, lg=2, className="mb-2"),
+                dbc.Col([
+                    html.Label("Channel:"),
+                    dcc.Dropdown(
+                        id='channel-filter-dropdown', # Kept original ID from file
+                        options=create_filter_options(channel_opts),
+                        value='All',
+                        clearable=False
+                    )
+                ], width=12, lg=2, className="mb-2"),
+                dbc.Col([
+                    html.Label("Aggregate:"),
+                    dcc.RadioItems(
+                        id='time-agg-selector',
+                        options=[{'label': 'Daily', 'value': 'date'},
+                                 {'label': 'Weekly', 'value': 'week'},
+                                 {'label': 'Monthly', 'value': 'month'}],
+                        value='date',
+                        inline=True
+                    )
+                ], width=12, lg=2, className="mb-2 align-self-center"),
+                dbc.Col([
+                    html.Label("Actions", style={'visibility': 'hidden'}),  # Spacer label
+                    dbc.ButtonGroup([
+                        dbc.Button("Apply", id="sales-apply-btn", color="primary"),
+                        dbc.Button("Export PDF", id="sales-export-btn", color="secondary") # NEW EXPORT BUTTON
+                    ], className="w-100")
+                ], width=12, lg=1, className="mb-2 align-self-end"),
+            ], align="bottom"),
         ]), className="mb-4"),
+        # --- END OF MODIFICATION ---
         dbc.Row([
             create_kpi_card("Total Revenue", "kpi-total-revenue", "primary"),
             create_kpi_card("Gross Margin", "kpi-gross-margin", "success"),
@@ -107,13 +188,54 @@ def create_delivery_layout() -> dbc.Container:
     delivery_df = DATA.get('deliveries', pd.DataFrame())
     if delivery_df.empty:
         return dbc.Container(html.H4("Delivery Data Not Available", className="text-center mt-5"))
+        
+    partner_opts = delivery_df['deliverypartner'].unique()
+    region_opts = delivery_df['city'].unique() # City is on delivery_df
+    
     return dbc.Container([
+        # --- MODIFIED: Added Export button in a ButtonGroup ---
         dbc.Card(dbc.CardBody([
             dbc.Row([
-                dbc.Col(dcc.Dropdown(id='delivery-partner-filter', options=[{'label': 'All Partners', 'value': 'All'}] + [{'label': p, 'value': p} for p in sorted(delivery_df['deliverypartner'].unique())], value='All', clearable=False), md=6),
-                dbc.Col(dcc.DatePickerRange(id='delivery-date-picker', min_date_allowed=delivery_df['date'].min(), max_date_allowed=delivery_df['date'].max(), start_date=delivery_df['date'].min(), end_date=delivery_df['date'].max()), md=6),
-            ]),
+                 dbc.Col([
+                    html.Label("Date Range:"),
+                    dcc.DatePickerRange(
+                        id='delivery-date-picker', # Kept original ID
+                        min_date_allowed=delivery_df['date'].min(),
+                        max_date_allowed=delivery_df['date'].max(),
+                        start_date=delivery_df['date'].min(),
+                        end_date=delivery_df['date'].max(),
+                        className="d-block"
+                    )
+                ], width=12, lg=4, className="mb-2"),
+                dbc.Col([
+                    html.Label("Region (City):"),
+                    dcc.Dropdown(
+                        id='delivery-region-filter', # NEW Filter
+                        options=create_multi_filter_options(region_opts),
+                        value=['All'],
+                        multi=True,
+                        clearable=False
+                    )
+                ], width=12, lg=3, className="mb-2"),
+                 dbc.Col([
+                    html.Label("Delivery Partner:"),
+                     dcc.Dropdown(
+                         id='delivery-partner-filter', # Kept original ID
+                         options=create_filter_options(partner_opts),
+                         value='All',
+                         clearable=False
+                     )
+                ], width=12, lg=3, className="mb-2"),
+                dbc.Col([
+                    html.Label("Actions", style={'visibility': 'hidden'}), # Spacer
+                    dbc.ButtonGroup([
+                        dbc.Button("Apply", id="delivery-apply-btn", color="primary"),
+                        dbc.Button("Export PDF", id="delivery-export-btn", color="secondary") # NEW EXPORT BUTTON
+                    ], className="w-100")
+                ], width=12, lg=2, className="mb-2 align-self-end"),
+            ], align="bottom"),
         ]), className="mb-4"),
+        # --- END OF MODIFICATION ---
         dbc.Row([
             create_kpi_card("On-Time Rate", "kpi-on-time-delivery", "success", width=3, md_width=6),
             create_kpi_card("Failed Delivery Rate", "kpi-failed-delivery", "danger", width=3, md_width=6),
@@ -129,7 +251,56 @@ def create_customer_layout() -> dbc.Container:
     customer_analysis_df = DATA.get('customer_analysis_df', pd.DataFrame())
     if customer_analysis_df.empty:
         return dbc.Container(html.H4("Customer or Sales Data Not Available", className="text-center mt-5"))
+    
+    # Get options from RFM/Customer Analysis DF
+    region_opts = customer_analysis_df['city'].unique()
+    segment_opts = customer_analysis_df['segment'].unique()
+    
     return dbc.Container([
+        # --- MODIFIED: Added Export button in a ButtonGroup ---
+        dbc.Card(dbc.CardBody([
+            dbc.Row([
+                 dbc.Col([
+                    html.Label("Customer Join Date Range:"),
+                    dcc.DatePickerRange(
+                        id='customer-date-picker', # NEW Filter
+                        min_date_allowed=customer_analysis_df['joindate'].min(),
+                        max_date_allowed=customer_analysis_df['joindate'].max(),
+                        start_date=customer_analysis_df['joindate'].min(),
+                        end_date=customer_analysis_df['joindate'].max(),
+                        className="d-block"
+                    )
+                ], width=12, lg=4, className="mb-2"),
+                dbc.Col([
+                    html.Label("Region (City):"),
+                    dcc.Dropdown(
+                        id='customer-region-filter', # NEW Filter
+                        options=create_multi_filter_options(region_opts),
+                        value=['All'],
+                        multi=True,
+                        clearable=False
+                    )
+                ], width=12, lg=3, className="mb-2"),
+                 dbc.Col([
+                    html.Label("Customer Segment:"),
+                     dcc.Dropdown(
+                         id='customer-segment-filter', # NEW Filter
+                         options=create_multi_filter_options(segment_opts),
+                         value=['All'],
+                         multi=True,
+                         clearable=False
+                     )
+                ], width=12, lg=3, className="mb-2"),
+                dbc.Col([
+                    html.Label("Actions", style={'visibility': 'hidden'}), # Spacer
+                    dbc.ButtonGroup([
+                        dbc.Button("Apply", id="customer-apply-btn", color="primary"),
+                        dbc.Button("Export PDF", id="customer-export-btn", color="secondary") # NEW EXPORT BUTTON
+                    ], className="w-100")
+                ], width=12, lg=2, className="mb-2 align-self-end"),
+            ], align="bottom"),
+        ]), className="mb-4"),
+        # --- END OF MODIFICATION ---
         dbc.Row([
             create_kpi_card("Total Customers", "kpi-total-customers", "primary", width=3, md_width=6),
             create_kpi_card("Active Customers", "kpi-active-customers", "success", width=3, md_width=6),
@@ -153,6 +324,7 @@ def create_customer_layout() -> dbc.Container:
 
 def create_competitor_layout() -> dbc.Container:
     """Creates the layout for the Market Intelligence dashboard."""
+    # (This layout remains unchanged as its callback was not requested for modification)
     competitor_df = DATA.get('competitors', pd.DataFrame())
     price_comparison_df = DATA.get('price_comparison_df', pd.DataFrame())
     if competitor_df.empty or price_comparison_df.empty:
@@ -172,7 +344,44 @@ def create_marketing_layout() -> dbc.Container:
     campaign_performance_df = DATA.get('campaign_performance_df', pd.DataFrame())
     if campaign_performance_df.empty:
         return dbc.Container(html.H4("Marketing Campaign Data Not Available", className="text-center mt-5"))
+        
+    channel_opts = campaign_performance_df['channel'].unique()
+    
     return dbc.Container([
+        # --- MODIFIED: Added Export button in a ButtonGroup ---
+        dbc.Card(dbc.CardBody([
+            dbc.Row([
+                 dbc.Col([
+                    html.Label("Campaign Date Range (Overlap):"),
+                    dcc.DatePickerRange(
+                        id='marketing-date-picker', # NEW
+                        # Need to parse dates since they might be strings
+                        min_date_allowed=pd.to_datetime(campaign_performance_df['startdate']).min().date(),
+                        max_date_allowed=pd.to_datetime(campaign_performance_df['enddate']).max().date(),
+                        start_date=pd.to_datetime(campaign_performance_df['startdate']).min().date(),
+                        end_date=pd.to_datetime(campaign_performance_df['enddate']).max().date(),
+                        className="d-block"
+                    )
+                ], width=12, lg=5, className="mb-2"),
+                dbc.Col([
+                    html.Label("Channel:"),
+                    dcc.Dropdown(
+                        id='marketing-channel-filter', # NEW
+                        options=create_filter_options(channel_opts),
+                        value='All',
+                        clearable=False
+                    )
+                ], width=12, lg=4, className="mb-2"),
+                dbc.Col([
+                    html.Label("Actions", style={'visibility': 'hidden'}), # Spacer
+                    dbc.ButtonGroup([
+                        dbc.Button("Apply", id="marketing-apply-btn", color="primary"),
+                        dbc.Button("Export PDF", id="marketing-export-btn", color="secondary") # NEW EXPORT BUTTON
+                    ], className="w-100")
+                ], width=12, lg=3, className="mb-2 align-self-end"),
+            ], align="bottom"),
+        ]), className="mb-4"),
+        # --- END OF MODIFICATION ---
         dbc.Row([
             create_kpi_card("Total Ad Spend", "kpi-total-ad-spend", "info", width=3, md_width=6),
             create_kpi_card("Overall ROAS", "kpi-avg-roas", "success", width=3, md_width=6),
@@ -188,7 +397,55 @@ def create_profit_layout() -> dbc.Container:
     profit_df = DATA.get('profit_df', pd.DataFrame())
     if profit_df.empty:
         return dbc.Container(html.H4("Profit calculation requires Sales, Delivery, and Marketing data.", className="text-center mt-5"))
+
+    region_opts = profit_df['city'].unique()
+    category_opts = profit_df['category'].unique()
+
     return dbc.Container([
+        # --- MODIFIED: Added Export button in a ButtonGroup ---
+        dbc.Card(dbc.CardBody([
+            dbc.Row([
+                 dbc.Col([
+                    html.Label("Date Range:"),
+                    dcc.DatePickerRange(
+                        id='profit-date-picker', # NEW
+                        min_date_allowed=profit_df['date'].min(),
+                        max_date_allowed=profit_df['date'].max(),
+                        start_date=profit_df['date'].min(),
+                        end_date=profit_df['date'].max(),
+                        className="d-block"
+                    )
+                ], width=12, lg=4, className="mb-2"),
+                dbc.Col([
+                    html.Label("Region (City):"),
+                    dcc.Dropdown(
+                        id='profit-region-filter', # NEW
+                        options=create_multi_filter_options(region_opts),
+                        value=['All'],
+                        multi=True,
+                        clearable=False
+                    )
+                ], width=12, lg=3, className="mb-2"),
+                 dbc.Col([
+                    html.Label("Category:"),
+                     dcc.Dropdown(
+                         id='profit-category-filter', # NEW
+                         options=create_multi_filter_options(category_opts),
+                         value=['All'],
+                         multi=True,
+                         clearable=False
+                     )
+                ], width=12, lg=3, className="mb-2"),
+                dbc.Col([
+                    html.Label("Actions", style={'visibility': 'hidden'}), # Spacer
+                    dbc.ButtonGroup([
+                        dbc.Button("Apply", id="profit-apply-btn", color="primary"),
+                        dbc.Button("Export PDF", id="profit-export-btn", color="secondary") # NEW EXPORT BUTTON
+                    ], className="w-100")
+                ], width=12, lg=2, className="mb-2 align-self-end"),
+            ], align="bottom"),
+        ]), className="mb-4"),
+        # --- END OF MODIFICATION ---
         dbc.Row([
             create_kpi_card("Total Net Profit", "kpi-total-net-profit", "success"),
             create_kpi_card("Average Profit Margin", "kpi-avg-profit-margin", "primary"),
@@ -204,9 +461,11 @@ def create_profit_layout() -> dbc.Container:
 
 
 # --- NEW: PREDICTIVE ANALYTICS LAYOUT (COMPLETE REPLACEMENT) ---
+# (This section remains unchanged as it already uses 'Apply' button logic and is not a standard report)
 
 def _create_forecast_tab() -> dbc.Tab:
     """NEW HELPER: Layout for Forecasting and Promo Simulation."""
+    # This tab layout is unchanged, as its callback is triggered by a button press.
     return dbc.Tab(label="Demand Forecasting & Promotion Simulation", children=[
         dbc.Row([
             # Controls - will stack on mobile (lg=3, md=12)
@@ -246,34 +505,19 @@ def _create_forecast_tab() -> dbc.Tab:
     ])
 
 def _create_churn_tab() -> dbc.Tab:
-    """NEW HELPER: Layout for Customer Churn Prediction."""
+    """
+    MODIFIED: Layout for Customer Churn Prediction.
+    This tab's content is now generated by a callback. We provide a Loading
+    component that wraps a single Div. The callback will populate this Div.
+    """
     return dbc.Tab(label="Customer Churn & LTV", children=[
-         dbc.Row([
-            # KPIs stack correctly with sm=12 (via md_width=6 and the default component logic)
-            create_kpi_card("Predicted Churn Rate", "pred-kpi-churn-rate", "danger", width=3, md_width=6),
-            create_kpi_card("Model AUC Score", "pred-kpi-churn-auc", "info", width=3, md_width=6),
-            create_kpi_card("Total At-Risk Revenue", "pred-kpi-churn-revenue", "warning", width=3, md_width=6),
-            create_kpi_card("Avg. LTV (Active Customer)", "pred-kpi-ltv", "success", width=3, md_width=6),
-         ], className="mt-3"),
-         
-         dbc.Row([
-            # Key Drivers Chart (stacks first on mobile)
-            create_graph_card(
-                graph_id="churn-key-drivers-chart", 
-                title="Key Drivers of Churn (Feature Importance)", 
-                lg_width=5,
-                width=5 # This becomes md=12, and sm=12 is the default, so it's full-width on mobile
-            ),
-            
-            # At-Risk Customer Table (stacks second on mobile)
-            create_datatable_card(
-                table_id="churn-at-risk-table", 
-                title="Top Customers At-Risk of Churn",
-                lg_width=7,
-                width=7 # Full-width on mobile
-            )
-         ])
+        dcc.Loading(
+            id="loading-churn-content",
+            type="default",
+            children=html.Div(id="churn-tab-content-wrapper", className="mt-3")
+        )
     ])
+
 
 def create_predictive_layout() -> dbc.Container:
     """
@@ -298,11 +542,11 @@ def create_predictive_layout() -> dbc.Container:
 def create_main_layout() -> html.Div:
     """
     Creates the main application layout.
-    MODIFIED: Replaced NavbarSimple with a fully collapsible Navbar for mobile.
+    MODIFIED: Added new dcc.Download component for PDFs.
     """
     
     # --- NEW: Collapsible Navbar ---
-    # We replace NavbarSimple with a full Navbar to get the mobile hamburger menu
+    # (Navbar definition remains unchanged)
     navbar = dbc.Navbar(
         dbc.Container([
             html.A(
@@ -344,10 +588,14 @@ def create_main_layout() -> html.Div:
     return html.Div([
         dcc.Store(id='data-store-trigger'),
         dcc.Download(id="download-dataframe-csv"),
+        dcc.Download(id="download-dashboard-pdf"), # <-- *** NEW PDF DOWNLOADER ***
         
         # --- Client-side model stores (Good for performance!) ---
         dcc.Store(id='store-forecast-model'),
         dcc.Store(id='store-churn-model'),
+        
+        # --- NEW: Signal store to trigger model tab refreshes after training ---
+        dcc.Store(id='model-training-signal-store', data=0),
         
         navbar, # Use the new navbar object
         dbc.Container([
