@@ -11,6 +11,10 @@ import logging
 import sys
 from pydantic_settings import BaseSettings
 from typing import Dict, List, Any
+from dotenv import load_dotenv  # <-- 1. ADD THIS IMPORT
+
+# --- ADD THIS LINE ---
+load_dotenv()  # This finds and loads the .env file from the project root
 
 # --- 1. Pydantic Settings Class ---
 # (Original code from config.py)
