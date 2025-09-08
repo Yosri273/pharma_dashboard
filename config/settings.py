@@ -48,7 +48,7 @@ settings = Settings()
 # Define module-level path constants AFTER the Pydantic class is instantiated.
 # This prevents the Pydantic parser conflict error.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_STORE_PATH = Path(os.environ.get("MODEL_STORE_PATH", "model_store"))
+MODEL_STORE_PATH = Path(os.environ.get("MODEL_STORE_PATH", "/tmp/model_store"))
 
 # --- 2. Centralized Data Schemas ---
 # (Original code from config.py)

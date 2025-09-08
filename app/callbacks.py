@@ -47,18 +47,8 @@ if PROJECT_ROOT not in sys.path:
 
 MODEL_STORE_PATH = os.path.join(PROJECT_ROOT, "model_store")
 if not os.path.exists(MODEL_STORE_PATH):
-    # Always create model store inside /app (Render allows writing there during runtime)
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    MODEL_STORE_PATH = os.path.join(BASE_DIR, "model_store")
-
-# Or if you prefer temporary storage only:
-# MODEL_STORE_PATH = "/tmp/model_store"
-
     os.makedirs(MODEL_STORE_PATH, exist_ok=True)
-
-print(f"Model storage path set to: {MODEL_STORE_PATH}")
-
-logger.info(f"Created model store directory: {MODEL_STORE_PATH}")
+    logger.info(f"Created model store directory: {MODEL_STORE_PATH}")
 
 CHURN_MODEL_PATH = os.path.join(MODEL_STORE_PATH, 'churn_predictor_main.joblib')
 CHURN_METRICS_PATH = os.path.join(MODEL_STORE_PATH, 'churn_metrics.joblib')
