@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Central Configuration Module - V21.2 (Predictive Pathing Fix)
+# Central Configuration Module - V22.0 (Logistics Schema Update)
 #
-# Moved path constants AFTER pydantic instantiation to resolve parser conflict.
+# MODIFIED: Updated DELIVERY_SCHEMA_NORM to replace 'deliverypartner' with
+#           'driverid' and 'vehicletype' to support analysis of the
+#           internal delivery fleet.
 # -----------------------------------------------------------------------------
 
 import os
@@ -11,14 +13,8 @@ import logging
 import sys
 from pydantic_settings import BaseSettings
 from typing import Dict, List, Any
-from dotenv import load_dotenv  # <-- 1. ADD THIS IMPORT
-from pathlib import Path
-
-# --- ADD THIS LINE ---
-load_dotenv()  # This finds and loads the .env file from the project root
 
 # --- 1. Pydantic Settings Class ---
-# (Original code from config.py)
 class Settings(BaseSettings):
     """Defines all application settings and their types via environment variables."""
     DB_USER: str = "mohamedyousri"
@@ -44,14 +40,11 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# --- NEW: Path Constants (Correct Location) ---
-# Define module-level path constants AFTER the Pydantic class is instantiated.
-# This prevents the Pydantic parser conflict error.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_STORE_PATH = Path(os.environ.get("MODEL_STORE_PATH", "/tmp/model_store"))
+MODEL_STORE_PATH = os.path.join(BASE_DIR, 'model_store')
+
 
 # --- 2. Centralized Data Schemas ---
-# (Original code from config.py)
 SALES_SCHEMA_NORM: Dict[str, List[str]] = {
     'orderid': ['OrderID', 'order_id'], 'timestamp': ['Timestamp', 'order_date'], 
     'productid': ['ProductID', 'product_sku'], 'productname': ['ProductName'],
@@ -60,12 +53,19 @@ SALES_SCHEMA_NORM: Dict[str, List[str]] = {
     'customerid': ['CustomerID', 'user_id'], 'city': ['City', 'store_city'], 
     'locationid': ['LocationID', 'store_id'], 'channel': ['Channel'], 'orderstatus': ['OrderStatus', 'status']
 }
+
+# --- MODIFIED SCHEMA ---
 DELIVERY_SCHEMA_NORM: Dict[str, List[str]] = {
     'deliveryid': ['DeliveryID'], 'orderid': ['OrderID'], 'orderdate': ['OrderDate'], 
     'promiseddate': ['PromisedDate'], 'actualdeliverydate': ['ActualDeliveryDate'], 
-    'status': ['Status'], 'deliverypartner': ['DeliveryPartner'], 'city': ['City'], 
+    'status': ['Status'],
+    'driverid': ['DriverID', 'driver_id'], # Replaces deliverypartner
+    'vehicletype': ['VehicleType', 'vehicle_type'], # NEW
+    'city': ['City'], 
     'deliverycost': ['DeliveryCost']
 }
+# --- END MODIFICATION ---
+
 CUSTOMER_SCHEMA_NORM: Dict[str, List[str]] = { 'customerid': ['CustomerID'], 'joindate': ['JoinDate'], 'city': ['City'], 'segment': ['Segment'] }
 FUNNEL_SCHEMA_NORM: Dict[str, List[str]] = { 'week': ['Week'], 'visits': ['Visits'], 'carts': ['Carts'], 'orders': ['Orders'] }
 COMPETITOR_SCHEMA_NORM: Dict[str, List[str]] = { 'date': ['Date'], 'competitor': ['Competitor'], 'productid': ['ProductID'], 'productname': ['ProductName'], 'price': ['Price'], 'onpromotion': ['OnPromotion'] }
@@ -89,20 +89,4 @@ TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
 logger = logging.getLogger(__name__)
 logger.info(f"Configuration loaded. DB Target: {settings.DATABASE_URL.split('@')[-1]}")
-logger.info(f"Model storage path set to: {MODEL_STORE_PATH}") # This log will now correctly use the constant
-
-# --- NEW: SMTP & REPORTING AUTOMATION SETTINGS ---
-# These settings are used by the automated report distribution service.
-
-# SMTP Server Configuration (Example using Gmail/Google Workspace)
-# For production, NEVER hardcode these. Set them as environment variables.
-SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
-SMTP_USER = os.environ.get("SMTP_USER", None) # e.g., "your-service-account@your-company.com"
-# For Google, this is an "App Password", not your real password
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", None) 
-
-# Automated Report Recipient Lists
-# Define recipients as a comma-separated string in environment variables
-_default_recipients = "regional.manager@pharma.com,ceo@pharma.com"
-REPORT_RECIPIENTS_LIST = os.environ.get("REPORT_RECIPIENTS", _default_recipients).split(",")
+logger.info(f"Model storage path set to: {MODEL_STORE_PATH}")

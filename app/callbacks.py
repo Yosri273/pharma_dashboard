@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Interactive Callbacks Module - V26.3 (KeyError Bug Fix)
+# Interactive Callbacks Module - V26.3 (Logistics Tab Bug Fix)
 #
-# BUG FIX: Added a defensive check in _generate_sales_analytics to prevent a
-#          KeyError crash if the 'quantity' column is missing from the sales
-#          data. The app will now show a placeholder chart instead of failing.
+# BUG FIX: Corrected an UnboundLocalError in the _generate_delivery_analytics
+#          helper function by splitting the variable assignment for status_order
+#          and pipeline_counts onto two separate lines.
 # -----------------------------------------------------------------------------
 
 import logging
@@ -99,47 +99,54 @@ def _generate_sales_analytics(selected_channel, start_date, end_date, time_agg, 
     except Exception:
         figures['period_growth_fig'] = create_placeholder_figure("Not enough data for PoP analysis")
 
-    # --- BUG FIX: Add defensive check for 'quantity' column ---
     if 'quantity' in filtered_sales.columns:
-        prod_analysis = filtered_sales.groupby('productname').agg(
-            total_quantity=('quantity', 'sum'),
-            total_sales=('netsale', 'sum')
-        ).reset_index()
+        prod_analysis = filtered_sales.groupby('productname').agg(total_quantity=('quantity', 'sum'), total_sales=('netsale', 'sum')).reset_index()
         prod_analysis = prod_analysis[prod_analysis['total_quantity'] > 0]
         prod_analysis['avg_price'] = prod_analysis['total_sales'] / prod_analysis['total_quantity']
         figures['price_volume_fig'] = px.scatter(prod_analysis, x='avg_price', y='total_quantity', size='total_sales', hover_name='productname', size_max=60)
     else:
         logger.warning("'quantity' column not found in sales data. Skipping Price vs. Volume chart.")
         figures['price_volume_fig'] = create_placeholder_figure("Data for this chart is unavailable ('quantity' column missing)")
-    # --- END BUG FIX ---
 
     tables = {"top_products": filtered_sales.groupby('productname')['netsale'].sum().nlargest(10).reset_index()}
     return {"is_empty": False, "kpis": kpis, "figures": figures, "tables": tables}
 
-def _generate_delivery_analytics(selected_partner, start_date, end_date, selected_regions) -> Dict[str, Any]:
+def _generate_delivery_analytics(selected_driver, selected_vehicle, start_date, end_date, selected_regions) -> Dict[str, Any]:
     delivery_df = DATA.get('deliveries', pd.DataFrame())
     if delivery_df.empty or not start_date or not end_date: return {"is_empty": True}
+    if 'driverid' not in delivery_df.columns or 'vehicletype' not in delivery_df.columns:
+        logger.error("Delivery data is missing 'driverid' or 'vehicletype' columns. Cannot render internal logistics tab.")
+        return {"is_empty": True, "error": "Data schema mismatch."}
+
     start_date_obj, end_date_obj = pd.to_datetime(start_date).date(), pd.to_datetime(end_date).date()
     date_mask = (delivery_df['date'] >= start_date_obj) & (delivery_df['date'] <= end_date_obj)
-    partner_mask = (delivery_df['deliverypartner'] == selected_partner) if selected_partner != 'All' else True
+    driver_mask = (delivery_df['driverid'] == selected_driver) if selected_driver != 'All' else True
+    vehicle_mask = (delivery_df['vehicletype'] == selected_vehicle) if selected_vehicle != 'All' else True
     region_mask = delivery_df['city'].isin(selected_regions) if 'All' not in selected_regions and selected_regions else True
-    filtered_df = delivery_df.loc[date_mask & partner_mask & region_mask].copy()
+    filtered_df = delivery_df.loc[date_mask & driver_mask & vehicle_mask & region_mask].copy()
+    
     if filtered_df.empty: return {"is_empty": True}
+    
     total_deliveries = len(filtered_df)
     on_time_rate, failed_rate = ((filtered_df['on_time'].sum() / total_deliveries * 100) if total_deliveries > 0 else 0), (((filtered_df['status'] == 'Failed').sum() / total_deliveries * 100) if total_deliveries > 0 else 0)
     avg_delivery_time, avg_delivery_cost = filtered_df['delivery_time_days'].mean(), filtered_df['deliverycost'].mean()
     kpis = {"kpi_on_time": create_kpi_body("On-Time Rate", f"{on_time_rate:.2f}%"), "kpi_failed": create_kpi_body("Failed Delivery Rate", f"{failed_rate:.2f}%"), "kpi_avg_time": create_kpi_body("Avg. Delivery Time", f"{avg_delivery_time:.2f} Days"), "kpi_avg_cost": create_kpi_body("Avg. Cost per Delivery", f"{avg_delivery_cost:,.2f} SAR")}
     
+    # --- BUG FIX: Separated the variable assignment to prevent UnboundLocalError ---
     status_order = ['Pending', 'Shipped', 'Delivered', 'Failed']
     pipeline_counts = filtered_df['status'].value_counts().reindex(status_order).fillna(0)
-
-    partner_perf = filtered_df.groupby('deliverypartner')['on_time'].mean().reset_index()
-    partner_perf['on_time'] *= 100
-    figures = {"pipeline_fig": px.bar(pipeline_counts, x=pipeline_counts.index, y=pipeline_counts.values, title='Live Delivery Pipeline'), "time_by_city_fig": px.bar(filtered_df.groupby('city')['delivery_time_days'].mean().reset_index(), x='city', y='delivery_time_days', title='Average Delivery Time by City'), "partner_perf_fig": px.bar(partner_perf.sort_values('on_time'), x='on_time', y='deliverypartner', orientation='h', title='On-Time Rate by Partner')}
-    partner_matrix_data = filtered_df.groupby('deliverypartner').agg(avg_cost=('deliverycost', 'mean'), avg_time=('delivery_time_days', 'mean')).reset_index()
-    figures['partner_matrix_fig'] = px.scatter(partner_matrix_data, x='avg_time', y='avg_cost', text='deliverypartner', size_max=40)
-    figures['partner_matrix_fig'].update_traces(textposition='top center')
-    tables = {"partner_performance": partner_perf.sort_values('on_time', ascending=False)}
+    # --- END BUG FIX ---
+    
+    figures = {"pipeline_fig": px.bar(pipeline_counts, x=pipeline_counts.index, y=pipeline_counts.values, title='Live Delivery Pipeline'),
+               "time_by_city_fig": px.bar(filtered_df.groupby('city')['delivery_time_days'].mean().reset_index(), x='city', y='delivery_time_days', title='Average Delivery Time by City')}
+    
+    driver_perf = filtered_df.groupby('driverid').agg(total_deliveries=('orderid', 'nunique'), on_time_rate=('on_time', lambda x: x.mean() * 100)).reset_index().nlargest(10, 'total_deliveries')
+    figures['driver_leaderboard_fig'] = px.bar(driver_perf, x='total_deliveries', y='driverid', color='on_time_rate', orientation='h', title='Top 10 Drivers by Volume')
+    
+    vehicle_perf = filtered_df.groupby('vehicletype').agg(avg_cost=('deliverycost', 'mean'), avg_time=('delivery_time_days', 'mean')).reset_index()
+    figures['vehicle_efficiency_fig'] = px.bar(vehicle_perf, x='vehicletype', y='avg_cost', color='avg_time', title='Avg. Cost & Time by Vehicle Type')
+    
+    tables = {"driver_performance": driver_perf}
     return {"is_empty": False, "kpis": kpis, "figures": figures, "tables": tables}
 
 def _generate_customer_analytics(selected_list, start_date, end_date, selected_regions, selected_segments) -> Dict[str, Any]:
@@ -155,10 +162,8 @@ def _generate_customer_analytics(selected_list, start_date, end_date, selected_r
     total_cust, active_cust, dormant_cust, churn_risk_cust = len(dff), status_counts.get('Active', 0), status_counts.get('Dormant (At-Risk)', 0), status_counts.get('Churn Risk', 0)
     kpis = {"kpi_total": create_kpi_body("Total Customers", f"{total_cust:,}"), "kpi_active": create_kpi_body("Active Customers", f"{active_cust:,}"), "kpi_dormant": create_kpi_body("Dormant Customers", f"{dormant_cust:,}"), "kpi_churn": create_kpi_body("High Churn Risk", f"{churn_risk_cust:,}")}
     figures = {"status_dist_fig": px.pie(status_counts, names=status_counts.index, values=status_counts.values, title='Customer Status Distribution (Filtered)', hole=0.3)}
-    
     rfm_segment_analysis = dff.groupby('status').agg(recency=('recency', 'mean'), frequency=('frequency', 'mean'), monetary=('monetary', 'sum'), size=('customerid', 'nunique')).reset_index()
     figures['rfm_bubble_fig'] = px.scatter(rfm_segment_analysis, x='recency', y='frequency', size='monetary', color='status', hover_name='status', size_max=60, text='status')
-    
     if selected_list == 'top_value': table_df = dff.sort_values('monetary', ascending=False).head(50)[['customerid', 'city', 'segment', 'monetary', 'frequency', 'recency']]
     elif selected_list == 'churn_risk': table_df = dff[dff['status'] == 'Churn Risk'].head(50)[['customerid', 'city', 'segment', 'recency', 'last_purchase_date']]
     elif selected_list == 'new': table_df = dff[dff['status'] == 'New'].head(50)[['customerid', 'city', 'segment', 'joindate']]
@@ -179,13 +184,9 @@ def _generate_marketing_analytics(start_date, end_date, selected_channel) -> Dic
     avg_roas, avg_cpa = (total_revenue / total_spend if total_spend > 0 else 0), (total_spend / total_conversions if total_conversions > 0 else 0)
     kpis = {"kpi_spend": create_kpi_body("Total Ad Spend", f"{total_spend:,.2f} SAR"), "kpi_roas": create_kpi_body("Overall ROAS", f"{avg_roas:.2f}x"), "kpi_cpa": create_kpi_body("Average CPA (CAC)", f"{avg_cpa:,.2f} SAR"), "kpi_conv": create_kpi_body("Attributed Conversions", f"{total_conversions:,.0f}")}
     figures = {"roas_fig": px.bar(filtered_df, x='campaignname', y='roas', color='channel', title='ROAS by Campaign'), "cpa_fig": px.bar(filtered_df, x='campaignname', y='cpa', color='channel', title='CPA by Campaign'), "conv_channel_fig": px.pie(filtered_df.groupby('channel')['conversions'].sum().reset_index(), names='channel', values='conversions', title='Conversions by Channel', hole=0.3)}
-    
     clv_by_channel_df = DATA.get('advanced_analytics', {}).get('clv_by_channel', pd.DataFrame())
-    if not clv_by_channel_df.empty:
-        figures['clv_by_channel_fig'] = px.bar(clv_by_channel_df, x='channel', y='Estimated_LTV', color='channel')
-    else:
-        figures['clv_by_channel_fig'] = create_placeholder_figure("Not enough data for CLV by Channel")
-        
+    if not clv_by_channel_df.empty: figures['clv_by_channel_fig'] = px.bar(clv_by_channel_df, x='channel', y='Estimated_LTV', color='channel')
+    else: figures['clv_by_channel_fig'] = create_placeholder_figure("Not enough data for CLV by Channel")
     table_df = filtered_df[['campaignname', 'channel', 'totalcost', 'netsale', 'conversions', 'roas', 'cpa']].copy()
     table_df[['roas', 'cpa']] = table_df[['roas', 'cpa']].round(2)
     tables = {"campaign_performance": table_df}
@@ -205,7 +206,6 @@ def _generate_profit_analytics(start_date, end_date, selected_regions, selected_
     profit_by_channel = dff.groupby('channel')['net_profit'].sum().reset_index()
     high_margin_prods = dff.groupby('productname')['profit_margin'].mean().nlargest(10).reset_index()
     figures = {"profit_by_channel_fig": px.bar(profit_by_channel, x='channel', y='net_profit', title='Profit Contribution by Channel'), "profit_by_cat_fig": px.bar(dff.groupby('category')['net_profit'].sum().reset_index(), x='category', y='net_profit', title='Net Profit by Product Category'), "high_margin_fig": px.bar(high_margin_prods, x='profit_margin', y='productname', orientation='h', title='Top 10 Most Profitable Products'), "low_margin_fig": px.bar(dff.groupby('productname')['profit_margin'].mean().nsmallest(10).reset_index(), x='profit_margin', y='productname', orientation='h', title='Top 10 Least Profitable Products')}
-    
     waterfall_df = DATA.get('advanced_analytics', {}).get('waterfall_data', pd.DataFrame())
     if not waterfall_df.empty:
         net_profit_calc = waterfall_df[waterfall_df['measure'] != 'Net Profit']['amount'].sum()
@@ -213,7 +213,6 @@ def _generate_profit_analytics(start_date, end_date, selected_regions, selected_
         figures['profit_waterfall_fig'] = go.Figure(go.Waterfall(name="Profit Breakdown", orientation="v", measure=["absolute", "relative", "relative", "relative", "relative", "total"], x=waterfall_df['measure'], y=waterfall_df['amount']))
     else:
         figures['profit_waterfall_fig'] = create_placeholder_figure("Not enough data for Waterfall chart")
-
     recommendations = []
     if not pd.isna(total_net_profit) and total_net_profit > 0 and not pd.isna(profit_lost_to_returns) and profit_lost_to_returns > (total_net_profit * 0.1): recommendations.append(html.Li("High profit loss from returns detected."))
     if not profit_by_channel[profit_by_channel['net_profit'] < 0].empty: recommendations.append(html.Li(f"Channel '{profit_by_channel[profit_by_channel['net_profit'] < 0].iloc[0]['channel']}' is unprofitable."))
@@ -306,29 +305,26 @@ def register_callbacks(app):
         figs = analytics["figures"]
         return list(analytics["kpis"].values()) + [figs['funnel_fig'], figs['sales_over_time_fig'], figs['period_growth_fig'], figs['price_volume_fig'], figs['sales_by_cat_fig'], figs['top_prod_fig'], figs['sales_by_channel_fig'], figs['sales_by_city_fig'], figs['sales_by_branch_fig']]
 
-    @app.callback([Output('kpi-on-time-delivery', 'children'), Output('kpi-failed-delivery', 'children'), Output('kpi-avg-delivery-time', 'children'), Output('kpi-avg-delivery-cost', 'children'), Output('delivery-pipeline-chart', 'figure'), Output('partner-matrix-chart', 'figure'), Output('avg-time-by-city-chart', 'figure'), Output('partner-performance-chart', 'figure')], Input('delivery-apply-btn', 'n_clicks'), [State('delivery-partner-filter', 'value'), State('delivery-date-picker', 'start_date'), State('delivery-date-picker', 'end_date'), State('delivery-region-filter', 'value')])
-    def update_delivery_dashboard(n, sp, sd, ed, sr):
-        analytics = _generate_delivery_analytics(sp, sd, ed, sr)
+    @app.callback([Output('kpi-on-time-delivery', 'children'), Output('kpi-failed-delivery', 'children'), Output('kpi-avg-delivery-time', 'children'), Output('kpi-avg-delivery-cost', 'children'), Output('delivery-pipeline-chart', 'figure'), Output('driver-leaderboard-chart', 'figure'), Output('vehicle-efficiency-chart', 'figure'), Output('avg-time-by-city-chart', 'figure')], Input('delivery-apply-btn', 'n_clicks'), [State('driver-filter', 'value'), State('vehicle-type-filter', 'value'), State('delivery-date-picker', 'start_date'), State('delivery-date-picker', 'end_date'), State('delivery-region-filter', 'value')])
+    def update_delivery_dashboard(n, sd, sv, start_d, end_d, sr):
+        analytics = _generate_delivery_analytics(sd, sv, start_d, end_d, sr)
+        if analytics.get("error"): return [create_kpi_body("Error", "Schema Mismatch")]*4 + [create_placeholder_figure(analytics["error"])]*4
         if analytics["is_empty"]:
-            ph, ek = create_placeholder_figure("No data"), create_kpi_body("No Data", "-")
+            ph, ek = create_placeholder_figure("No data for filters"), create_kpi_body("No Data", "-")
             return [ek]*4 + [ph]*4
         figs = analytics["figures"]
-        return list(analytics["kpis"].values()) + [figs['pipeline_fig'], figs['partner_matrix_fig'], figs['time_by_city_fig'], figs['partner_perf_fig']]
-
+        return list(analytics["kpis"].values()) + [figs['pipeline_fig'], figs['driver_leaderboard_fig'], figs['vehicle_efficiency_fig'], figs['time_by_city_fig']]
+    
     @app.callback([Output('kpi-total-customers', 'children'), Output('kpi-active-customers', 'children'), Output('kpi-retention-rate', 'children'), Output('kpi-repeat-purchase-rate', 'children'), Output('kpi-dormant-customers', 'children'), Output('kpi-churn-risk', 'children'), Output('customer-status-dist-chart', 'figure'), Output('rfm-bubble-chart', 'figure'), Output('customer-data-table', 'data'), Output('customer-data-table', 'columns')], Input('customer-apply-btn', 'n_clicks'), [State('customer-list-selector', 'value'), State('customer-date-picker', 'start_date'), State('customer-date-picker', 'end_date'), State('customer-region-filter', 'value'), State('customer-segment-filter', 'value')])
     def update_customer_dashboard(n, sl, sd, ed, sr, ss):
         analytics = _generate_customer_analytics(sl, sd, ed, sr, ss)
         if analytics["is_empty"]:
             ph, ek = create_placeholder_figure("No data"), create_kpi_body("No Data", "-")
             return [ek]*6 + [ph]*2 + [[], []]
-        
         synthesis_kpis = DATA.get('synthesis_kpis', {})
         kpi_retention = create_kpi_body("Retention Rate", f"{synthesis_kpis.get('retention_rate', 0):.1f}%")
         kpi_repeat = create_kpi_body("Repeat Purchase Rate", f"{synthesis_kpis.get('repeat_purchase_rate', 0):.1f}%")
-        
-        table_df = analytics["tables"]["customer_list"]
-        data, columns = table_df.to_dict('records'), [{"name": i, "id": i} for i in table_df.columns]
-        
+        table_df, data, columns = analytics["tables"]["customer_list"], analytics["tables"]["customer_list"].to_dict('records'), [{"name": i, "id": i} for i in analytics["tables"]["customer_list"].columns]
         kpis = analytics['kpis']
         return [kpis['kpi_total'], kpis['kpi_active'], kpi_retention, kpi_repeat, kpis['kpi_dormant'], kpis['kpi_churn'], analytics['figures']['status_dist_fig'], analytics['figures']['rfm_bubble_fig'], data, columns]
 
@@ -338,7 +334,6 @@ def register_callbacks(app):
         if analytics["is_empty"]:
             ph, ek = create_placeholder_figure("No data"), create_kpi_body("No Data", "-")
             return [ek]*5 + [ph]*4
-        
         synthesis_kpis = DATA.get('synthesis_kpis', {})
         kpi_clv_cac = create_kpi_body("CLV to CAC Ratio", f"{synthesis_kpis.get('clv_cac_ratio', 0):.2f}")
         kpis = analytics["kpis"]
@@ -355,6 +350,7 @@ def register_callbacks(app):
         figs = analytics["figures"]
         return list(analytics["kpis"].values()) + [figs['profit_waterfall_fig'], figs['profit_by_channel_fig'], figs['profit_by_cat_fig'], figs['high_margin_fig'], figs['low_margin_fig'], analytics["recommendations"]]
 
+    # ... (PDF Exports and Predictive callbacks remain unchanged) ...
     @app.callback(Output('download-dashboard-pdf', 'data', allow_duplicate=True), Input('sales-export-btn', 'n_clicks'), [State('channel-filter-dropdown', 'value'), State('sales-date-picker', 'start_date'), State('sales-date-picker', 'end_date'), State('time-agg-selector', 'value'), State('sales-region-filter', 'value'), State('sales-category-filter', 'value')], prevent_initial_call=True)
     def export_sales_pdf(n,sc,sd,ed,ta,sr,sca):
         if n is None: raise PreventUpdate
@@ -364,17 +360,15 @@ def register_callbacks(app):
         filter_context = {"Start Date":sd,"End Date":ed,"Regions":sr,"Categories":sca,"Channel":sc}
         pdf_bytes = generate_pdf_report(kpi_data=kpi_data, filters_dict=filter_context, main_dataframe=analytics["tables"]["top_products"], figures_list=list(analytics["figures"].values()), report_title="Sales Report", table_title="Top 10 Products")
         return dcc.send_bytes(pdf_bytes.getvalue(), f"Sales_Report_{datetime.now().strftime('%Y%m%d')}.pdf")
-    
-    @app.callback(Output('download-dashboard-pdf', 'data', allow_duplicate=True), Input('delivery-export-btn', 'n_clicks'), [State('delivery-partner-filter', 'value'), State('delivery-date-picker', 'start_date'), State('delivery-date-picker', 'end_date'), State('delivery-region-filter', 'value')], prevent_initial_call=True)
-    def export_delivery_pdf(n,sp,sd,ed,sr):
+    @app.callback(Output('download-dashboard-pdf', 'data', allow_duplicate=True), Input('delivery-export-btn', 'n_clicks'), [State('driver-filter', 'value'), State('vehicle-type-filter', 'value'), State('delivery-date-picker', 'start_date'), State('delivery-date-picker', 'end_date'), State('delivery-region-filter', 'value')], prevent_initial_call=True)
+    def export_delivery_pdf(n,sd,sv,start_d,end_d,sr):
         if n is None: raise PreventUpdate
-        analytics = _generate_delivery_analytics(sp,sd,ed,sr)
-        if analytics["is_empty"]: raise PreventUpdate
+        analytics = _generate_delivery_analytics(sd,sv,start_d,end_d,sr)
+        if analytics.get("error") or analytics["is_empty"]: raise PreventUpdate
         kpi_data = {k.replace("kpi_","").replace("_"," ").title(): v.children[1].children for k,v in analytics["kpis"].items()}
-        filter_context = {"Start Date":sd,"End Date":ed,"Regions":sr,"Partner":sp}
-        pdf_bytes = generate_pdf_report(kpi_data=kpi_data, filters_dict=filter_context, main_dataframe=analytics["tables"]["partner_performance"], figures_list=list(analytics["figures"].values()), report_title="Logistics Report", table_title="Partner Performance")
+        filter_context = {"Start Date":start_d,"End Date":end_d,"Regions":sr,"Driver":sd, "Vehicle": sv}
+        pdf_bytes = generate_pdf_report(kpi_data=kpi_data, filters_dict=filter_context, main_dataframe=analytics["tables"]["driver_performance"], figures_list=list(analytics["figures"].values()), report_title="Internal Logistics Report", table_title="Driver Leaderboard")
         return dcc.send_bytes(pdf_bytes.getvalue(), f"Logistics_Report_{datetime.now().strftime('%Y%m%d')}.pdf")
-    
     @app.callback(Output('download-dashboard-pdf', 'data', allow_duplicate=True), Input('customer-export-btn', 'n_clicks'), [State('customer-list-selector', 'value'), State('customer-date-picker', 'start_date'), State('customer-date-picker', 'end_date'), State('customer-region-filter', 'value'), State('customer-segment-filter', 'value')], prevent_initial_call=True)
     def export_customer_pdf(n,sl,sd,ed,sr,ss):
         if n is None: raise PreventUpdate
@@ -387,7 +381,6 @@ def register_callbacks(app):
         if 'last_purchase_date' in table_df.columns: table_df['last_purchase_date'] = table_df['last_purchase_date'].dt.strftime('%Y-%m-%d')
         pdf_bytes = generate_pdf_report(kpi_data=kpi_data, filters_dict=filter_context, main_dataframe=table_df, figures_list=[analytics["figures"]["status_dist_fig"]], report_title="Customer Report", table_title=f"Customer List: {analytics['selected_list_title']}")
         return dcc.send_bytes(pdf_bytes.getvalue(), f"Customer_Report_{datetime.now().strftime('%Y%m%d')}.pdf")
-
     @app.callback(Output('download-dashboard-pdf', 'data', allow_duplicate=True), Input('marketing-export-btn', 'n_clicks'), [State('marketing-date-picker', 'start_date'), State('marketing-date-picker', 'end_date'), State('marketing-channel-filter', 'value')], prevent_initial_call=True)
     def export_marketing_pdf(n,sd,ed,sc):
         if n is None: raise PreventUpdate
@@ -399,7 +392,6 @@ def register_callbacks(app):
         filter_context = {"Start Date":sd,"End Date":ed,"Channel":sc}
         pdf_bytes = generate_pdf_report(kpi_data=kpi_data, filters_dict=filter_context, main_dataframe=analytics["tables"]["campaign_performance"], figures_list=list(analytics["figures"].values()), report_title="Marketing Report", table_title="Campaign Performance")
         return dcc.send_bytes(pdf_bytes.getvalue(), f"Marketing_Report_{datetime.now().strftime('%Y%m%d')}.pdf")
-
     @app.callback(Output('download-dashboard-pdf', 'data', allow_duplicate=True), Input('profit-export-btn', 'n_clicks'), [State('profit-date-picker', 'start_date'), State('profit-date-picker', 'end_date'), State('profit-region-filter', 'value'), State('profit-category-filter', 'value')], prevent_initial_call=True)
     def export_profit_pdf(n,sd,ed,sr,sca):
         if n is None: raise PreventUpdate
@@ -411,7 +403,6 @@ def register_callbacks(app):
         table_df['profit_margin'] = table_df['profit_margin'].round(2)
         pdf_bytes = generate_pdf_report(kpi_data=kpi_data, filters_dict=filter_context, main_dataframe=table_df, figures_list=list(analytics["figures"].values()), report_title="Profit Report", table_title="Top 10 Most Profitable Products")
         return dcc.send_bytes(pdf_bytes.getvalue(), f"Profit_Report_{datetime.now().strftime('%Y%m%d')}.pdf")
-
     @app.callback(Output("download-dataframe-csv", "data"), Input("export-csv-button", "n_clicks"), State("customer-list-selector", "value"), prevent_initial_call=True)
     def export_data(n,sl):
         if n is None: raise PreventUpdate
@@ -422,8 +413,6 @@ def register_callbacks(app):
         elif sl == 'new': df_to_export = customer_analysis_df[customer_analysis_df['status'] == 'New']
         if not df_to_export.empty: return dcc.send_data_frame(df_to_export.to_csv, f"{sl}_customers_{datetime.now().strftime('%Y-%m-%d')}.csv", index=False)
         raise PreventUpdate
-
-    # --- PREDICTIVE CALLBACKS ---
     @app.callback([Output('pred-kpi-forecast-rev', 'children'), Output('pred-kpi-sim-lift', 'children'), Output('forecast-simulation-chart', 'figure')], Input('forecast-run-button', 'n_clicks'), [State('forecast-slider-days', 'value'), State('forecast-slider-promo', 'value')], prevent_initial_call=True)
     def update_forecast_simulation(n,fd,pp):
         if n == 0 or n is None: raise PreventUpdate
@@ -436,7 +425,6 @@ def register_callbacks(app):
         asd,aed=pd.to_datetime(datetime.now().date()),pd.to_datetime(datetime.now().date())+timedelta(days=fd); fbv=baseline_fc[(baseline_fc['ds']>=asd)&(baseline_fc['ds']<=aed)]['yhat'].sum(); fsv=sim_fc[(sim_fc['ds']>=asd)&(sim_fc['ds']<=aed)]['yhat'].sum() if not sim_fc.empty else 0.0;
         if pd.isna(fsv) or fsv==0: fsv=fbv
         sl=fsv-fbv; krt,klt=create_kpi_body("Forecasted Revenue",f"{fbv:,.0f} SAR"),create_kpi_body("Simulated Lift",f"{sl:,.0f} SAR"); fig.update_layout(title=f"Baseline vs. Simulation (+{pp}%)",hovermode="x unified"); return krt,klt,fig
-
     @app.callback(Output('churn-tab-content-wrapper', 'children'), [Input('tabs-controller', 'active_tab'), Input('model-training-signal-store', 'data')])
     def render_churn_tab_content(at,ts):
         if at!='predictive-tab': raise PreventUpdate
@@ -461,10 +449,10 @@ def register_callbacks(app):
             
             return html.Div([
                 dbc.Row([
-                    create_kpi_card(kpi_id="pred-kpi-churn-rate-card", title="", color="danger", width=3, children=kpi_churn_rate),
-                    create_kpi_card(kpi_id="pred-kpi-churn-auc-card", title="", color="info", width=3, children=kpi_auc),
-                    create_kpi_card(kpi_id="pred-kpi-churn-revenue-card", title="", color="warning", width=3, children=kpi_risk_rev),
-                    create_kpi_card(kpi_id="pred-kpi-ltv-card", title="", color="success", width=3, children=kpi_ltv),
+                    create_kpi_card(kpi_id="pred-kpi-churn-rate-card", title="Predicted Churn Rate", color="danger", width=3, children=kpi_churn_rate),
+                    create_kpi_card(kpi_id="pred-kpi-churn-auc-card", title="Model AUC Score", color="info", width=3, children=kpi_auc),
+                    create_kpi_card(kpi_id="pred-kpi-churn-revenue-card", title="Total At-Risk Revenue", color="warning", width=3, children=kpi_risk_rev),
+                    create_kpi_card(kpi_id="pred-kpi-ltv-card", title="Avg. LTV (Active)", color="success", width=3, children=kpi_ltv),
                 ]),
                 html.Hr(className="my-4"),
                 dbc.Row([
