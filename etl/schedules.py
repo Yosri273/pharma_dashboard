@@ -1,9 +1,12 @@
 # etl/schedules.py
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Automated Data Pipeline Scheduler - V21.0 (Final Master)
-# ...
-# [PREDICTIVE ANALYTICS EXTENSION ADDED]
+# Automated Data Pipeline Scheduler - V22.0 (Prediction Saving Fix)
+#
+# BUG FIX: The churn training pipeline was only saving the model artifact, not
+#          the predictions. Added the crucial step to use the newly trained
+#          model to generate predictions (including Estimated_LTV) and save
+#          them to the 'customer_churn_predictions' database table.
 # -----------------------------------------------------------------------------
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -49,12 +52,15 @@ def run_forecast_training_pipeline():
         logger.info("[ML JOB]: Starting Demand Forecast training pipeline...")
         from etl.transforms import DATA # Import the freshly loaded data
         
-        sales_df = DATA['sales']
-        marketing_df = DATA['campaigns'].rename(columns={'CampaignDate': 'ds', 'CampaignName': 'holiday'})
+        sales_df = DATA.get('sales', pd.DataFrame())
+        # FIX: Ensure 'marketing_campaigns' exists before proceeding
+        marketing_df = DATA.get('marketing_campaigns', pd.DataFrame())
+        if not marketing_df.empty:
+            marketing_df = marketing_df.rename(columns={'startdate': 'ds', 'campaignname': 'holiday'})
+        else:
+            marketing_df = None # Prophet can handle a None holidays_df
         
-        # 1. Feature Engineering: Create the main timeseries (all categories, all channels)
-        # Note: In production, you might train separate models per category.
-        # For this dashboard, one aggregate model is efficient.
+        # 1. Feature Engineering: Create the main timeseries
         ts_df = get_daily_sales_timeseries(sales_df, category='all', channel='all')
         
         if ts_df.empty or len(ts_df) < 60:
@@ -80,11 +86,12 @@ def run_churn_training_pipeline():
     """
     try:
         logger.info("[ML JOB]: Starting Customer Churn training pipeline...")
+        engine = get_engine()
         from etl.transforms import DATA # Import fresh data
         
-        sales_df = DATA['sales']
-        customer_df = DATA['customers']
-        analysis_date = pd.to_datetime(datetime.now()) # Use "today" as the snapshot date for RFM
+        sales_df = DATA.get('sales', pd.DataFrame())
+        customer_df = DATA.get('customers', pd.DataFrame())
+        analysis_date = pd.to_datetime(datetime.now())
 
         # 1. Feature Engineering (RFM)
         rfm_features = build_rfm_features(sales_df, customer_df, analysis_date)
@@ -94,14 +101,31 @@ def run_churn_training_pipeline():
         fitted_pipeline, metrics = churn_model.fit(rfm_features)
         
         # 3. Save Artifacts
-        # We save the *entire* ChurnPredictor object, which contains:
-        # 1. The scikit-learn pipeline (preprocessor + model)
-        # 2. The SHAP explainer
-        # 3. The feature name list
         save_model_artifact(churn_model, 'churn_predictor_main.joblib')
-        save_model_artifact(metrics, 'churn_metrics.joblib') # Save metrics for the dashboard
+        save_model_artifact(metrics, 'churn_metrics.joblib')
         
-        logger.info(f"[ML JOB]: Churn Model training complete (Test AUC: {metrics.get('auc')}) and artifacts saved.")
+        logger.info(f"[ML JOB]: Churn Model training complete (Test AUC: {metrics.get('auc')})...")
+
+        # --- BUG FIX: GENERATE AND SAVE PREDICTIONS TO DATABASE ---
+        logger.info("[ML JOB]: Generating predictions for all customers...")
+        # Use the newly trained model to get predictions, including Estimated_LTV
+        full_predictions_df = churn_model.predict_churn_probability(rfm_features)
+
+        # Select only the necessary columns for the database table
+        # This now includes the critical 'Estimated_LTV' column
+        cols_to_save = ['customerid', 'churn_probability', 'Estimated_LTV']
+        # Ensure all columns exist before trying to save
+        predictions_to_save = full_predictions_df[[col for col in cols_to_save if col in full_predictions_df.columns]]
+
+        logger.info(f"[ML JOB]: Saving {len(predictions_to_save)} predictions to 'customer_churn_predictions' table...")
+        predictions_to_save.to_sql(
+            "customer_churn_predictions",
+            engine,
+            if_exists='replace',
+            index=False
+        )
+        logger.info("[ML JOB]: Successfully saved predictions to database.")
+        # --- END BUG FIX ---
 
     except Exception as e:
         logger.error(f"[ML JOB]: Churn Model training failed: {e}", exc_info=True)
@@ -111,7 +135,6 @@ def run_churn_training_pipeline():
 def start_scheduler():
     """
     Configures and starts the APScheduler jobs.
-    We chain the ML jobs to run after the main ETL.
     """
     if scheduler.running:
         logger.warning("Scheduler already running.")
@@ -122,139 +145,17 @@ def start_scheduler():
     # 1. Add the main ETL job. Runs daily at 2:00 AM.
     scheduler.add_job(run_daily_etl, 'cron', hour=2, minute=0, id='job_daily_etl')
 
-    # 2. Add the ML jobs. We chain them to the ETL job using 'add_listener'.
-    # When the ETL job succeeds, the ML pipelines are triggered immediately after.
-    # (Alternatively, we could schedule them for 3:00 AM, but this ensures data freshness)
+    # 2. Add the ML jobs. They will run 10 minutes after the ETL job.
+    scheduler.add_job(run_forecast_training_pipeline, 'cron', hour=2, minute=10, id='job_forecast_train')
+    scheduler.add_job(run_churn_training_pipeline, 'cron', hour=2, minute=15, id='job_churn_train')
     
-    scheduler.add_listener(
-        lambda event: run_forecast_training_pipeline(),
-        mask=0x1000 # EVENT_JOB_EXECUTED
-    )
-    
-    scheduler.add_listener(
-         lambda event: run_churn_training_pipeline(),
-        mask=0x1000 # EVENT_JOB_EXECUTED
-    )
-
-    # Note: The listeners above will trigger when ANY job finishes, including themselves.
-    # To be more robust, filter the event:
-    # def job_listener(event):
-    #    if event.job_id == 'job_daily_etl':
-    #        run_forecast_training_pipeline()
-    #        run_churn_training_pipeline()
-    # scheduler.add_listener(job_listener, mask=0x1000) # EVENT_JOB_EXECUTED
-    # ... but the simple implementation above is fine for this structure.
-
     scheduler.start()
-    logger.info("Scheduler started. Daily ETL scheduled for 02:00.")
+    logger.info("Scheduler started. Daily ETL and ML jobs are scheduled.")
 
-    # --- FOR TESTING: Run jobs now instead of waiting for 2 AM ---
-    # logger.info("RUNNING BOOTSTRAP JOBS NOW...")
+    # --- FOR TESTING: Uncomment to run jobs on startup ---
+    # logger.info("RUNNING BOOTSTRAP JOBS NOW FOR TESTING...")
     # run_daily_etl()
     # run_forecast_training_pipeline()
     # run_churn_training_pipeline()
     # logger.info("BOOTSTRAP JOBS COMPLETE.")
 
-    """
-Module for running scheduled ETL tasks and automated jobs.
-NEW: Added functions for automated report data generation.
-"""
-import pandas as pd
-import plotly.express as px
-from datetime import datetime, timedelta
-from sqlalchemy.engine import Engine
-
-# Import project components needed for the job
-from services.db import get_engine
-from app.reporting import generate_pdf_report # Reuse our PDF generator
-# This logic will live here, separate from the mailer
-# from services.mailer import send_report_email 
-
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-def _get_weekly_sales_report_data(engine: Engine) -> dict:
-    """
-    Connects to the DB and generates all data objects needed for the weekly sales report.
-    
-    This function re-implements the logic from the Dash callback but in a "headless"
-    state, running calculations directly from the database for a fixed period.
-    """
-    logger.info("Generating weekly sales report payload...")
-    
-    # 1. Load data
-    try:
-        # Instead of the global DATA dict, query the DB for fresh data
-        sales_df = pd.read_sql_table("sales_fact", engine, parse_dates=["date"])
-    except Exception as e:
-        logger.error(f"Failed to read 'sales_fact' from DB: {e}. Aborting report.")
-        return None
-        
-    if sales_df.empty:
-        logger.warning("No sales data found in database. Aborting report.")
-        return None
-
-    # 2. Define Filter Context (Fixed for this automated report)
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=7)
-    
-    filter_context = {
-        "Report Period": "Last 7 Days",
-        "Start Date": start_date.isoformat(),
-        "End Date": end_date.isoformat(),
-        "Regions": ["All"],
-        "Categories": ["All"]
-    }
-    
-    # 3. Filter DataFrame
-    date_mask = (sales_df['date'].dt.date >= start_date) & (sales_df['date'].dt.date <= end_date)
-    filtered_sales = sales_df.loc[date_mask].copy()
-
-    if filtered_sales.empty:
-        logger.warning(f"No sales data found for the period {start_date} to {end_date}.")
-        return None
-
-    # 4. Calculate KPIs (logic copied from callbacks.py)
-    total_revenue = filtered_sales['netsale'].sum()
-    total_cogs = filtered_sales['costofgoodssold'].sum()
-    net_profit = total_revenue - total_cogs
-    gross_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
-    total_orders = filtered_sales['orderid'].nunique()
-    aov = total_revenue / total_orders if total_orders > 0 else 0
-
-    kpi_data = {
-        "Total Revenue": f"{total_revenue:,.2f} SAR",
-        "Gross Margin": f"{gross_margin:.2f}%",
-        "Net Profit": f"{net_profit:,.2f} SAR",
-        "Total Orders": f"{total_orders:,}",
-        "Avg Order Value": f"{aov:,.2f} SAR"
-    }
-
-    # 5. Generate Figures (logic copied from callbacks.py)
-    time_grouped = filtered_sales.groupby('date')['netsale'].sum().reset_index()
-    sales_over_time_fig = px.line(time_grouped, x='date', y='netsale', title='Net Sales Trend (Last 7 Days)')
-    
-    category_sales = filtered_sales.groupby('category')['netsale'].sum().reset_index()
-    sales_by_cat_fig = px.pie(category_sales, names='category', values='netsale', title='Sales by Category', hole=0.3)
-    
-    channel_sales = filtered_sales.groupby('channel')['netsale'].sum().reset_index()
-    sales_by_channel_fig = px.pie(channel_sales, names='channel', values='netsale', title='Sales by Channel', hole=0.3)
-    
-    figures_list = [sales_over_time_fig, sales_by_cat_fig, sales_by_channel_fig]
-
-    # 6. Generate Main Table (logic copied from callbacks.py)
-    main_table_df = filtered_sales.groupby('productname')['netsale'].sum().nlargest(10).reset_index()
-    
-    logger.info("Successfully generated report data payload.")
-    
-    # Return the exact payload our PDF generator expects
-    return {
-        "kpi_data": kpi_data,
-        "filters_dict": filter_context,
-        "main_dataframe": main_table_df,
-        "figures_list": figures_list,
-        "report_title": "Weekly Sales Summary Report",
-        "table_title": "Top 10 Products (Last 7 Days)"
-    }
