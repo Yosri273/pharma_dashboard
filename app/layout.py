@@ -189,7 +189,7 @@ def _create_churn_tab() -> dbc.Tab:
 def create_predictive_layout() -> dbc.Container:
     return dbc.Container([dbc.Row([dbc.Col(html.H4("Predictive Analytics & Simulations"), width=12, className="mb-3")]), dbc.Tabs([_create_forecast_tab(), _create_churn_tab()])], fluid=True)
 def create_main_layout() -> html.Div:
-    navbar = dbc.Navbar(dbc.Container([html.A(dbc.Row([dbc.Col(dbc.NavbarBrand("Pharma Analytics Hub", className="ms-2"))], align="center", className="g-0"), href="#", style={"textDecoration": "none"}), dbc.NavbarToggler(id="navbar-toggler", n_clicks=0), dbc.Collapse(dbc.Nav([dbc.Button(["Refresh Data ", html.I(className="bi bi-arrow-clockwise")], id="refresh-data-button", color="secondary")], className="ms-auto p-2", navbar=True), id="navbar-collapse", is_open=False, navbar=True)]), color="primary", dark=True, className="mb-4")
+    navbar = dbc.Navbar(dbc.Container([html.A(dbc.Row([dbc.Col(dbc.NavbarBrand("Yosri Analytics Hub", className="ms-2"))], align="center", className="g-0"), href="#", style={"textDecoration": "none"}), dbc.NavbarToggler(id="navbar-toggler", n_clicks=0), dbc.Collapse(dbc.Nav([dbc.Button(["Refresh Data ", html.I(className="bi bi-arrow-clockwise")], id="refresh-data-button", color="secondary")], className="ms-auto p-2", navbar=True), id="navbar-collapse", is_open=False, navbar=True)]), color="primary", dark=True, className="mb-4")
     return html.Div([
         dcc.Interval(id='alert-poll-interval', interval=60 * 1000, n_intervals=0), html.Div(id='active-alert-banner-container', style={'padding': '10px'}),
         dcc.Store(id='data-store-trigger'), dcc.Download(id="download-dataframe-csv"), dcc.Download(id="download-dashboard-pdf"),
