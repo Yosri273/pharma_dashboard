@@ -1,0 +1,601 @@
+ticketid,customerid,createdat,status,issue_type,resolution_time,channel
+T000001,C00882,2024-08-11 23:14:55,closed,Product Question,60,phone
+T000002,C00461,2025-08-25 23:14:55,escalated,Delivery,63,chat
+T000003,C00122,2024-12-27 23:14:55,escalated,Delivery,20,chat
+T000004,C00859,2025-02-14 23:14:55,closed,Product Question,27,email
+T000005,C00157,2025-06-04 23:14:55,escalated,Product Question,19,phone
+T000006,C00301,2024-08-21 23:14:55,escalated,Order Issue,39,chat
+T000007,C00765,2024-10-13 23:14:55,closed,Return,45,email
+T000008,C00450,2025-03-16 23:14:55,escalated,Product Question,71,email
+T000009,C00481,2025-05-10 23:14:55,escalated,Order Issue,41,email
+T000010,C01043,2024-11-08 23:14:55,escalated,Product Question,27,email
+T000011,C01164,2024-09-06 23:14:55,open,Order Issue,27,phone
+T000012,C00242,2025-07-09 23:14:55,open,Product Question,64,phone
+T000013,C01119,2024-10-10 23:14:55,closed,Product Question,9,phone
+T000014,C00302,2025-04-30 23:14:55,open,Order Issue,23,chat
+T000015,C00089,2025-02-15 23:14:55,open,Order Issue,57,chat
+T000016,C01043,2025-05-10 23:14:55,open,Product Question,46,phone
+T000017,C00002,2025-06-13 23:14:55,closed,Product Question,38,email
+T000018,C00381,2025-04-01 23:14:55,escalated,Delivery,50,email
+T000019,C00420,2025-07-15 23:14:55,escalated,Product Question,51,chat
+T000020,C00274,2025-07-23 23:14:55,open,Delivery,0,chat
+T000021,C00020,2025-07-17 23:14:55,open,Delivery,38,chat
+T000022,C00624,2025-03-25 23:14:55,open,Product Question,38,chat
+T000023,C00388,2024-12-08 23:14:55,closed,Order Issue,42,email
+T000024,C00832,2024-12-16 23:14:55,closed,Product Question,14,email
+T000025,C00351,2025-08-19 23:14:55,escalated,Order Issue,24,email
+T000026,C00364,2025-02-20 23:14:55,escalated,Order Issue,44,phone
+T000027,C00312,2025-01-12 23:14:55,open,Order Issue,40,phone
+T000028,C00871,2024-12-12 23:14:55,closed,Order Issue,31,chat
+T000029,C00375,2025-01-20 23:14:55,open,Return,14,email
+T000030,C00012,2024-08-19 23:14:55,escalated,Product Question,17,chat
+T000031,C00562,2025-01-23 23:14:55,open,Order Issue,7,email
+T000032,C01183,2025-02-11 23:14:55,closed,Delivery,1,phone
+T000033,C00409,2025-05-29 23:14:55,open,Delivery,67,chat
+T000034,C00317,2025-08-11 23:14:55,closed,Product Question,43,phone
+T000035,C00235,2024-08-31 23:14:55,open,Delivery,43,phone
+T000036,C00878,2024-10-16 23:14:55,escalated,Order Issue,42,email
+T000037,C01172,2024-08-24 23:14:55,closed,Return,60,chat
+T000038,C00657,2025-04-06 23:14:55,escalated,Order Issue,3,email
+T000039,C00628,2025-03-05 23:14:55,escalated,Order Issue,43,email
+T000040,C00623,2024-10-28 23:14:55,escalated,Delivery,32,phone
+T000041,C00137,2024-08-13 23:14:55,open,Order Issue,48,email
+T000042,C01170,2025-05-23 23:14:55,open,Order Issue,31,email
+T000043,C00206,2025-08-29 23:14:55,closed,Product Question,21,email
+T000044,C00328,2024-12-18 23:14:55,open,Return,40,email
+T000045,C00510,2024-11-01 23:14:55,closed,Return,8,email
+T000046,C00201,2025-04-18 23:14:55,escalated,Delivery,25,chat
+T000047,C00112,2024-12-27 23:14:55,closed,Delivery,52,chat
+T000048,C00860,2025-05-06 23:14:55,closed,Product Question,8,chat
+T000049,C00911,2024-08-13 23:14:55,open,Order Issue,8,phone
+T000050,C00957,2024-08-18 23:14:55,open,Delivery,18,email
+T000051,C00041,2024-10-28 23:14:55,open,Delivery,69,chat
+T000052,C00664,2025-04-09 23:14:55,open,Delivery,0,email
+T000053,C00618,2025-06-28 23:14:55,open,Order Issue,27,chat
+T000054,C00176,2024-11-25 23:14:55,open,Return,14,phone
+T000055,C01179,2025-04-08 23:14:55,open,Product Question,39,chat
+T000056,C00433,2025-06-27 23:14:55,escalated,Return,71,email
+T000057,C01125,2025-07-19 23:14:55,open,Order Issue,4,phone
+T000058,C00245,2024-11-15 23:14:55,closed,Order Issue,10,email
+T000059,C00594,2024-09-28 23:14:55,closed,Product Question,19,chat
+T000060,C00037,2025-06-04 23:14:55,closed,Order Issue,18,phone
+T000061,C00971,2025-02-13 23:14:55,closed,Return,22,chat
+T000062,C00504,2025-06-19 23:14:55,escalated,Order Issue,57,email
+T000063,C00385,2025-06-21 23:14:55,open,Return,6,chat
+T000064,C00193,2024-09-10 23:14:55,closed,Product Question,39,email
+T000065,C00409,2024-10-31 23:14:55,open,Product Question,29,phone
+T000066,C00603,2024-09-12 23:14:55,escalated,Delivery,13,phone
+T000067,C00680,2024-12-06 23:14:55,open,Return,3,phone
+T000068,C00377,2025-02-16 23:14:55,closed,Delivery,25,email
+T000069,C00548,2024-09-06 23:14:55,open,Order Issue,31,chat
+T000070,C00960,2024-10-03 23:14:55,closed,Product Question,42,phone
+T000071,C00898,2025-01-26 23:14:55,closed,Order Issue,29,phone
+T000072,C00408,2025-06-12 23:14:55,escalated,Return,29,email
+T000073,C00529,2025-04-26 23:14:55,closed,Return,2,chat
+T000074,C00627,2025-05-08 23:14:55,closed,Order Issue,39,email
+T000075,C00157,2025-01-08 23:14:55,open,Order Issue,44,email
+T000076,C00910,2024-09-02 23:14:55,open,Product Question,36,email
+T000077,C00198,2025-04-18 23:14:55,escalated,Order Issue,54,email
+T000078,C00339,2024-10-19 23:14:55,escalated,Order Issue,10,email
+T000079,C00063,2024-12-17 23:14:55,closed,Return,40,phone
+T000080,C00893,2024-10-20 23:14:55,open,Delivery,22,email
+T000081,C00502,2024-08-17 23:14:55,open,Delivery,68,phone
+T000082,C00072,2025-07-03 23:14:55,closed,Order Issue,24,phone
+T000083,C00934,2025-01-12 23:14:55,open,Delivery,50,chat
+T000084,C01013,2024-11-10 23:14:55,open,Product Question,46,phone
+T000085,C00277,2024-11-10 23:14:55,open,Product Question,66,email
+T000086,C00498,2025-07-20 23:14:55,open,Return,34,phone
+T000087,C00281,2025-02-16 23:14:55,escalated,Product Question,27,email
+T000088,C00329,2025-01-26 23:14:55,closed,Return,6,chat
+T000089,C01074,2025-01-14 23:14:55,escalated,Delivery,64,email
+T000090,C00198,2025-07-01 23:14:55,closed,Order Issue,8,chat
+T000091,C01005,2025-06-14 23:14:55,open,Delivery,72,phone
+T000092,C00170,2025-07-30 23:14:55,escalated,Order Issue,53,email
+T000093,C00281,2024-11-07 23:14:55,closed,Product Question,18,email
+T000094,C00207,2025-03-08 23:14:55,open,Order Issue,25,email
+T000095,C01119,2025-02-09 23:14:55,escalated,Product Question,62,email
+T000096,C00917,2025-07-01 23:14:55,escalated,Delivery,45,chat
+T000097,C00736,2025-05-30 23:14:55,open,Product Question,64,email
+T000098,C00901,2024-10-15 23:14:55,escalated,Order Issue,9,email
+T000099,C00756,2025-02-02 23:14:55,open,Product Question,72,phone
+T000100,C00134,2025-01-03 23:14:55,closed,Return,15,phone
+T000101,C00399,2025-06-15 23:14:55,closed,Product Question,68,email
+T000102,C00097,2025-01-24 23:14:55,open,Order Issue,37,phone
+T000103,C00699,2025-01-22 23:14:55,closed,Return,21,chat
+T000104,C00566,2025-02-07 23:14:55,open,Product Question,71,chat
+T000105,C00970,2025-04-14 23:14:55,closed,Order Issue,61,chat
+T000106,C00296,2025-06-26 23:14:55,open,Delivery,54,chat
+T000107,C00033,2024-10-22 23:14:55,escalated,Product Question,7,phone
+T000108,C00525,2025-05-21 23:14:55,open,Product Question,34,email
+T000109,C00355,2024-08-15 23:14:55,open,Delivery,38,email
+T000110,C00391,2025-02-24 23:14:55,open,Product Question,6,phone
+T000111,C00586,2025-09-13 23:14:55,open,Delivery,36,email
+T000112,C00370,2025-01-17 23:14:55,open,Return,72,phone
+T000113,C00122,2025-05-25 23:14:55,closed,Order Issue,3,chat
+T000114,C00606,2025-09-10 23:14:55,escalated,Return,26,email
+T000115,C00477,2024-12-21 23:14:55,closed,Return,67,chat
+T000116,C00928,2025-04-01 23:14:55,escalated,Order Issue,32,chat
+T000117,C00381,2025-03-01 23:14:55,escalated,Return,50,phone
+T000118,C01024,2024-09-10 23:14:55,escalated,Delivery,29,chat
+T000119,C00712,2025-08-10 23:14:55,escalated,Order Issue,5,chat
+T000120,C00531,2025-07-15 23:14:55,escalated,Order Issue,61,email
+T000121,C00607,2024-10-27 23:14:55,open,Order Issue,66,chat
+T000122,C00561,2024-08-14 23:14:55,escalated,Product Question,15,phone
+T000123,C00895,2024-10-19 23:14:55,open,Delivery,26,phone
+T000124,C00700,2024-12-18 23:14:55,closed,Order Issue,57,chat
+T000125,C00261,2025-07-30 23:14:55,closed,Delivery,40,phone
+T000126,C00451,2025-03-10 23:14:55,open,Delivery,46,chat
+T000127,C00774,2025-02-23 23:14:55,escalated,Delivery,70,email
+T000128,C00411,2025-04-16 23:14:55,closed,Delivery,6,chat
+T000129,C00135,2025-08-15 23:14:55,open,Return,71,chat
+T000130,C00615,2024-12-15 23:14:55,closed,Delivery,69,phone
+T000131,C00892,2025-08-08 23:14:55,escalated,Order Issue,31,chat
+T000132,C00306,2025-06-10 23:14:55,open,Order Issue,62,email
+T000133,C00186,2024-08-30 23:14:55,closed,Product Question,49,phone
+T000134,C00902,2024-11-16 23:14:55,closed,Order Issue,33,chat
+T000135,C00291,2025-01-14 23:14:55,escalated,Delivery,72,email
+T000136,C00759,2024-12-26 23:14:55,escalated,Return,50,chat
+T000137,C00502,2025-04-30 23:14:55,escalated,Order Issue,28,chat
+T000138,C00939,2025-05-10 23:14:55,escalated,Product Question,16,chat
+T000139,C00328,2024-10-07 23:14:55,closed,Product Question,7,chat
+T000140,C00859,2024-10-10 23:14:55,open,Product Question,37,phone
+T000141,C00078,2025-05-18 23:14:55,open,Product Question,17,email
+T000142,C00669,2025-04-20 23:14:55,escalated,Return,10,chat
+T000143,C00271,2025-02-11 23:14:55,escalated,Delivery,44,email
+T000144,C00758,2024-12-02 23:14:55,escalated,Product Question,3,email
+T000145,C00067,2025-02-22 23:14:55,escalated,Product Question,5,email
+T000146,C00628,2024-11-21 23:14:55,escalated,Order Issue,55,chat
+T000147,C00684,2025-01-07 23:14:55,escalated,Return,27,email
+T000148,C00324,2025-03-03 23:14:55,open,Order Issue,2,email
+T000149,C00487,2025-05-21 23:14:55,escalated,Product Question,65,chat
+T000150,C00832,2025-04-30 23:14:55,closed,Return,72,email
+T000151,C00334,2025-03-28 23:14:55,closed,Order Issue,41,chat
+T000152,C00399,2025-06-17 23:14:55,open,Return,52,chat
+T000153,C00805,2025-07-03 23:14:55,open,Order Issue,68,email
+T000154,C01159,2024-08-17 23:14:55,escalated,Delivery,18,chat
+T000155,C00706,2025-02-22 23:14:55,open,Delivery,55,email
+T000156,C00201,2025-07-11 23:14:55,closed,Return,6,phone
+T000157,C00434,2025-05-04 23:14:55,open,Product Question,50,chat
+T000158,C00631,2024-09-27 23:14:55,open,Order Issue,60,email
+T000159,C00849,2025-01-09 23:14:55,escalated,Product Question,35,chat
+T000160,C00695,2025-08-16 23:14:55,open,Return,49,phone
+T000161,C00464,2025-06-13 23:14:55,escalated,Return,48,phone
+T000162,C01087,2025-05-08 23:14:55,open,Delivery,47,phone
+T000163,C00380,2024-09-03 23:14:55,open,Order Issue,21,chat
+T000164,C00950,2025-06-14 23:14:55,escalated,Product Question,62,email
+T000165,C00403,2025-05-22 23:14:55,closed,Return,44,chat
+T000166,C00854,2025-03-06 23:14:55,open,Product Question,15,phone
+T000167,C00561,2025-02-26 23:14:55,open,Delivery,66,phone
+T000168,C00499,2025-02-24 23:14:55,closed,Return,53,chat
+T000169,C00838,2024-12-05 23:14:55,escalated,Order Issue,45,email
+T000170,C00063,2025-08-22 23:14:55,escalated,Product Question,48,chat
+T000171,C00479,2025-05-11 23:14:55,closed,Delivery,56,phone
+T000172,C00492,2025-05-05 23:14:55,open,Product Question,38,phone
+T000173,C00460,2025-06-05 23:14:55,escalated,Return,38,chat
+T000174,C01172,2025-04-14 23:14:55,escalated,Order Issue,4,email
+T000175,C00888,2025-06-15 23:14:55,escalated,Order Issue,22,chat
+T000176,C01085,2025-08-11 23:14:55,closed,Return,33,email
+T000177,C00281,2024-08-17 23:14:55,open,Delivery,33,chat
+T000178,C00932,2025-08-15 23:14:55,open,Product Question,46,chat
+T000179,C00990,2025-01-22 23:14:55,open,Order Issue,44,phone
+T000180,C00632,2025-04-06 23:14:55,open,Return,58,email
+T000181,C00259,2024-11-08 23:14:55,open,Delivery,70,email
+T000182,C00542,2025-01-19 23:14:55,closed,Order Issue,6,chat
+T000183,C00054,2025-02-27 23:14:55,closed,Order Issue,65,email
+T000184,C00760,2025-05-31 23:14:55,escalated,Order Issue,54,chat
+T000185,C00027,2025-01-21 23:14:55,open,Return,67,email
+T000186,C00750,2024-12-28 23:14:55,closed,Order Issue,56,email
+T000187,C00344,2025-06-05 23:14:55,closed,Return,71,chat
+T000188,C00944,2024-12-12 23:14:55,open,Product Question,12,email
+T000189,C01013,2025-02-04 23:14:55,escalated,Return,64,phone
+T000190,C00767,2025-07-25 23:14:55,escalated,Order Issue,3,email
+T000191,C00416,2025-05-29 23:14:55,escalated,Delivery,57,email
+T000192,C00616,2025-04-29 23:14:55,open,Order Issue,26,phone
+T000193,C00209,2025-03-16 23:14:55,escalated,Product Question,8,phone
+T000194,C00779,2025-05-31 23:14:55,escalated,Return,22,chat
+T000195,C00026,2024-11-05 23:14:55,escalated,Delivery,14,email
+T000196,C00833,2025-03-08 23:14:55,closed,Product Question,33,chat
+T000197,C00380,2024-11-03 23:14:55,escalated,Order Issue,14,email
+T000198,C00750,2024-08-22 23:14:55,escalated,Order Issue,71,email
+T000199,C00624,2025-02-16 23:14:55,closed,Order Issue,69,chat
+T000200,C00931,2024-12-06 23:14:55,escalated,Order Issue,15,email
+T000201,C00101,2024-12-27 23:14:55,open,Product Question,61,email
+T000202,C00839,2025-04-30 23:14:55,open,Product Question,4,email
+T000203,C00700,2025-07-29 23:14:55,closed,Product Question,3,chat
+T000204,C00962,2024-08-16 23:14:55,open,Return,43,chat
+T000205,C00533,2025-02-08 23:14:55,escalated,Order Issue,7,phone
+T000206,C01167,2025-08-24 23:14:55,closed,Product Question,26,email
+T000207,C00209,2024-10-31 23:14:55,closed,Return,62,phone
+T000208,C00263,2025-08-02 23:14:55,escalated,Delivery,66,phone
+T000209,C00222,2024-12-13 23:14:55,open,Order Issue,14,phone
+T000210,C00307,2025-01-03 23:14:55,closed,Return,51,email
+T000211,C01133,2024-11-04 23:14:55,escalated,Product Question,18,chat
+T000212,C00615,2025-01-11 23:14:55,escalated,Product Question,47,email
+T000213,C00885,2025-01-16 23:14:55,escalated,Product Question,51,chat
+T000214,C00487,2025-02-12 23:14:55,escalated,Return,50,chat
+T000215,C00704,2025-08-15 23:14:55,escalated,Delivery,18,chat
+T000216,C00981,2024-08-14 23:14:55,open,Product Question,15,phone
+T000217,C00972,2024-11-02 23:14:55,escalated,Product Question,71,chat
+T000218,C01019,2024-10-04 23:14:55,escalated,Return,5,email
+T000219,C00995,2025-05-22 23:14:55,closed,Order Issue,3,email
+T000220,C00578,2025-01-29 23:14:55,closed,Delivery,5,email
+T000221,C00306,2025-06-13 23:14:55,escalated,Product Question,41,email
+T000222,C00250,2025-05-30 23:14:55,escalated,Product Question,56,email
+T000223,C00160,2025-09-10 23:14:55,closed,Delivery,24,email
+T000224,C00286,2025-01-17 23:14:55,open,Delivery,57,email
+T000225,C00227,2025-05-09 23:14:55,escalated,Order Issue,7,chat
+T000226,C00632,2025-07-14 23:14:55,escalated,Order Issue,37,phone
+T000227,C00224,2024-11-22 23:14:55,closed,Product Question,13,email
+T000228,C00790,2025-08-29 23:14:55,open,Return,1,phone
+T000229,C00886,2025-05-22 23:14:55,open,Order Issue,48,email
+T000230,C00655,2025-04-19 23:14:55,escalated,Order Issue,10,email
+T000231,C01102,2024-08-19 23:14:55,closed,Order Issue,17,phone
+T000232,C00307,2024-08-18 23:14:55,open,Product Question,56,phone
+T000233,C00134,2024-08-10 23:14:55,open,Delivery,10,chat
+T000234,C00152,2025-04-04 23:14:55,escalated,Product Question,31,phone
+T000235,C00998,2025-07-18 23:14:55,escalated,Return,63,email
+T000236,C00658,2025-03-18 23:14:55,escalated,Product Question,69,chat
+T000237,C00239,2025-06-30 23:14:55,closed,Return,38,chat
+T000238,C01151,2025-06-27 23:14:55,open,Order Issue,65,phone
+T000239,C00818,2025-01-27 23:14:55,closed,Return,27,phone
+T000240,C01013,2025-06-18 23:14:55,open,Order Issue,52,chat
+T000241,C00862,2025-07-22 23:14:55,open,Product Question,0,email
+T000242,C00052,2025-04-08 23:14:55,escalated,Product Question,40,email
+T000243,C00309,2025-03-25 23:14:55,closed,Delivery,6,chat
+T000244,C00350,2024-12-13 23:14:55,open,Delivery,26,phone
+T000245,C00236,2025-01-11 23:14:55,open,Return,5,phone
+T000246,C00898,2025-04-10 23:14:55,open,Return,59,chat
+T000247,C00045,2025-06-17 23:14:55,escalated,Return,12,email
+T000248,C00312,2025-02-01 23:14:55,open,Delivery,36,email
+T000249,C00637,2025-07-19 23:14:55,escalated,Delivery,42,chat
+T000250,C00940,2024-12-07 23:14:55,open,Order Issue,52,chat
+T000251,C00562,2025-05-01 23:14:55,open,Order Issue,54,email
+T000252,C00515,2025-06-21 23:14:55,escalated,Order Issue,8,email
+T000253,C00291,2025-07-01 23:14:55,open,Return,45,chat
+T000254,C00329,2025-04-09 23:14:55,closed,Return,30,chat
+T000255,C00197,2025-01-21 23:14:55,closed,Product Question,64,chat
+T000256,C00884,2024-09-23 23:14:55,open,Delivery,64,email
+T000257,C01098,2024-09-19 23:14:55,open,Return,43,email
+T000258,C00524,2024-11-29 23:14:55,open,Return,47,chat
+T000259,C00363,2024-09-03 23:14:55,closed,Order Issue,27,phone
+T000260,C00327,2024-09-22 23:14:55,closed,Return,13,phone
+T000261,C00056,2025-08-04 23:14:55,closed,Delivery,2,chat
+T000262,C00129,2024-11-08 23:14:55,closed,Return,15,email
+T000263,C00847,2024-08-22 23:14:55,closed,Delivery,0,phone
+T000264,C00590,2024-10-30 23:14:55,escalated,Return,51,email
+T000265,C00044,2025-07-19 23:14:55,open,Product Question,37,chat
+T000266,C00711,2025-01-08 23:14:55,escalated,Delivery,13,chat
+T000267,C00224,2025-04-20 23:14:55,escalated,Product Question,25,phone
+T000268,C00043,2025-09-07 23:14:55,closed,Order Issue,10,email
+T000269,C01171,2024-08-14 23:14:55,closed,Order Issue,39,chat
+T000270,C00681,2024-08-17 23:14:55,escalated,Product Question,58,phone
+T000271,C00511,2025-05-05 23:14:55,escalated,Product Question,21,email
+T000272,C00887,2025-04-05 23:14:55,closed,Delivery,16,chat
+T000273,C00007,2025-04-05 23:14:55,closed,Order Issue,44,phone
+T000274,C00083,2025-06-30 23:14:55,closed,Order Issue,12,email
+T000275,C00904,2024-12-22 23:14:55,closed,Order Issue,41,phone
+T000276,C00086,2025-09-08 23:14:55,escalated,Return,22,chat
+T000277,C00831,2024-09-28 23:14:55,escalated,Return,37,phone
+T000278,C00012,2025-02-21 23:14:55,open,Delivery,20,phone
+T000279,C00140,2024-09-10 23:14:55,closed,Return,45,phone
+T000280,C00588,2025-03-08 23:14:55,escalated,Product Question,58,email
+T000281,C01138,2025-02-05 23:14:55,open,Product Question,66,chat
+T000282,C00927,2025-03-06 23:14:55,closed,Order Issue,6,email
+T000283,C00597,2025-05-09 23:14:55,escalated,Order Issue,59,email
+T000284,C00572,2024-11-13 23:14:55,closed,Delivery,68,email
+T000285,C00612,2024-12-10 23:14:55,closed,Delivery,10,chat
+T000286,C00720,2024-12-28 23:14:55,open,Product Question,3,phone
+T000287,C01069,2025-08-23 23:14:55,closed,Return,6,chat
+T000288,C01076,2024-10-21 23:14:55,closed,Return,36,email
+T000289,C00200,2025-09-08 23:14:55,open,Return,2,email
+T000290,C00962,2024-10-09 23:14:55,open,Order Issue,14,email
+T000291,C00046,2025-05-11 23:14:55,open,Delivery,30,email
+T000292,C00356,2024-11-11 23:14:55,escalated,Delivery,65,phone
+T000293,C01036,2024-11-14 23:14:55,closed,Delivery,53,chat
+T000294,C00784,2025-02-18 23:14:55,closed,Return,35,chat
+T000295,C00958,2024-12-25 23:14:55,open,Product Question,30,chat
+T000296,C00412,2025-07-31 23:14:55,open,Return,10,chat
+T000297,C00531,2025-09-06 23:14:55,closed,Return,51,email
+T000298,C00896,2025-04-04 23:14:55,closed,Order Issue,34,email
+T000299,C00738,2025-02-14 23:14:55,escalated,Product Question,32,phone
+T000300,C00526,2024-09-08 23:14:55,escalated,Delivery,33,phone
+T000301,C01007,2025-07-05 23:14:55,escalated,Order Issue,9,email
+T000302,C00611,2025-02-15 23:14:55,closed,Order Issue,5,phone
+T000303,C01026,2025-05-30 23:14:55,escalated,Order Issue,29,email
+T000304,C00308,2025-02-16 23:14:55,escalated,Order Issue,43,email
+T000305,C00641,2024-10-25 23:14:55,escalated,Delivery,13,email
+T000306,C00605,2025-05-05 23:14:55,open,Product Question,35,phone
+T000307,C00339,2025-05-03 23:14:55,closed,Return,68,chat
+T000308,C00673,2024-12-01 23:14:55,escalated,Return,18,chat
+T000309,C00300,2025-04-08 23:14:55,open,Order Issue,39,chat
+T000310,C01087,2025-05-05 23:14:55,escalated,Delivery,5,chat
+T000311,C00111,2024-10-17 23:14:55,escalated,Product Question,63,chat
+T000312,C00232,2025-05-24 23:14:55,closed,Order Issue,42,phone
+T000313,C00698,2025-07-19 23:14:55,closed,Return,13,chat
+T000314,C00126,2024-11-09 23:14:55,escalated,Return,56,phone
+T000315,C00477,2025-08-25 23:14:55,open,Delivery,72,email
+T000316,C01146,2025-07-23 23:14:55,closed,Return,3,chat
+T000317,C00960,2025-09-06 23:14:55,closed,Order Issue,53,chat
+T000318,C00974,2025-01-09 23:14:55,escalated,Product Question,64,chat
+T000319,C00449,2024-08-18 23:14:55,open,Delivery,68,chat
+T000320,C00454,2024-11-27 23:14:55,open,Return,29,email
+T000321,C00254,2025-05-13 23:14:55,escalated,Return,61,phone
+T000322,C00770,2024-08-11 23:14:55,escalated,Order Issue,27,chat
+T000323,C00836,2025-09-13 23:14:55,escalated,Order Issue,17,email
+T000324,C01080,2025-01-21 23:14:55,open,Product Question,36,chat
+T000325,C01001,2025-04-01 23:14:55,closed,Order Issue,68,email
+T000326,C00324,2025-05-31 23:14:55,closed,Order Issue,7,email
+T000327,C00124,2024-11-12 23:14:55,open,Delivery,15,phone
+T000328,C00449,2024-11-27 23:14:55,open,Product Question,27,phone
+T000329,C00361,2025-08-05 23:14:55,open,Delivery,63,email
+T000330,C00972,2025-01-17 23:14:55,closed,Delivery,61,email
+T000331,C00554,2025-06-11 23:14:55,closed,Order Issue,16,phone
+T000332,C00436,2025-07-22 23:14:55,closed,Delivery,31,email
+T000333,C00225,2025-02-22 23:14:55,escalated,Product Question,63,chat
+T000334,C01199,2024-08-18 23:14:55,open,Order Issue,44,chat
+T000335,C01037,2025-07-10 23:14:55,escalated,Product Question,8,phone
+T000336,C00007,2024-10-10 23:14:55,escalated,Delivery,29,email
+T000337,C00009,2024-12-31 23:14:55,closed,Product Question,16,chat
+T000338,C00780,2025-04-04 23:14:55,closed,Delivery,48,chat
+T000339,C00876,2025-01-08 23:14:55,escalated,Delivery,0,phone
+T000340,C00441,2024-08-30 23:14:55,closed,Order Issue,10,phone
+T000341,C00053,2024-10-08 23:14:55,escalated,Delivery,11,email
+T000342,C00134,2025-03-14 23:14:55,open,Product Question,2,chat
+T000343,C01175,2025-04-04 23:14:55,open,Product Question,17,phone
+T000344,C00701,2024-11-09 23:14:55,escalated,Delivery,55,chat
+T000345,C00846,2025-01-28 23:14:55,closed,Delivery,1,email
+T000346,C00321,2025-01-17 23:14:55,escalated,Return,64,email
+T000347,C00343,2025-02-21 23:14:55,open,Product Question,14,email
+T000348,C00328,2025-01-03 23:14:55,escalated,Delivery,34,chat
+T000349,C00493,2025-08-23 23:14:55,closed,Delivery,5,email
+T000350,C00884,2024-12-05 23:14:55,open,Product Question,12,email
+T000351,C00642,2025-05-14 23:14:55,open,Order Issue,9,phone
+T000352,C01112,2025-03-15 23:14:55,closed,Delivery,6,email
+T000353,C01088,2024-12-12 23:14:55,open,Order Issue,60,chat
+T000354,C01029,2025-04-10 23:14:55,escalated,Order Issue,64,email
+T000355,C01079,2024-08-25 23:14:55,closed,Product Question,48,email
+T000356,C00203,2024-09-28 23:14:55,escalated,Product Question,29,email
+T000357,C00406,2025-09-01 23:14:55,open,Return,5,email
+T000358,C00096,2025-07-10 23:14:55,open,Return,44,phone
+T000359,C00549,2025-08-18 23:14:55,open,Product Question,57,email
+T000360,C00139,2025-05-17 23:14:55,open,Product Question,32,phone
+T000361,C00897,2025-06-23 23:14:55,escalated,Delivery,70,email
+T000362,C01062,2025-07-09 23:14:55,open,Delivery,40,chat
+T000363,C01109,2024-09-19 23:14:55,closed,Return,47,email
+T000364,C01110,2025-04-02 23:14:55,escalated,Product Question,72,phone
+T000365,C01130,2025-08-20 23:14:55,escalated,Delivery,55,email
+T000366,C01117,2025-01-27 23:14:55,escalated,Delivery,52,phone
+T000367,C00777,2025-01-08 23:14:55,open,Return,34,email
+T000368,C00039,2025-04-18 23:14:55,escalated,Delivery,71,email
+T000369,C00281,2025-05-02 23:14:55,escalated,Product Question,37,chat
+T000370,C00341,2025-01-23 23:14:55,closed,Order Issue,42,phone
+T000371,C01184,2024-11-12 23:14:55,escalated,Order Issue,3,phone
+T000372,C00209,2024-12-27 23:14:55,open,Return,54,chat
+T000373,C00118,2024-11-18 23:14:55,closed,Return,51,email
+T000374,C00018,2025-02-03 23:14:55,open,Order Issue,9,phone
+T000375,C00794,2024-11-07 23:14:55,escalated,Return,11,chat
+T000376,C00386,2025-08-24 23:14:55,escalated,Product Question,22,phone
+T000377,C01090,2024-12-04 23:14:55,open,Return,22,chat
+T000378,C00065,2025-03-27 23:14:55,escalated,Delivery,71,email
+T000379,C00661,2025-05-02 23:14:55,closed,Order Issue,9,phone
+T000380,C01151,2024-09-22 23:14:55,open,Order Issue,49,phone
+T000381,C00863,2025-07-29 23:14:55,closed,Order Issue,27,chat
+T000382,C00571,2025-06-29 23:14:55,open,Return,53,email
+T000383,C00888,2024-11-03 23:14:55,open,Delivery,43,chat
+T000384,C00492,2024-12-07 23:14:55,open,Product Question,49,email
+T000385,C00140,2025-03-28 23:14:55,open,Order Issue,38,chat
+T000386,C01062,2024-12-09 23:14:55,open,Product Question,18,phone
+T000387,C01111,2024-10-01 23:14:55,closed,Order Issue,24,chat
+T000388,C00483,2024-12-31 23:14:55,closed,Order Issue,45,chat
+T000389,C01197,2025-02-20 23:14:55,escalated,Product Question,4,chat
+T000390,C00587,2025-04-14 23:14:55,escalated,Delivery,9,chat
+T000391,C00732,2024-12-16 23:14:55,open,Order Issue,59,chat
+T000392,C00418,2025-09-10 23:14:55,closed,Delivery,53,email
+T000393,C00356,2025-03-12 23:14:55,closed,Product Question,66,chat
+T000394,C00327,2025-09-09 23:14:55,escalated,Delivery,13,chat
+T000395,C00509,2025-01-31 23:14:55,open,Order Issue,10,email
+T000396,C01135,2025-02-14 23:14:55,closed,Order Issue,18,email
+T000397,C00464,2025-09-09 23:14:55,open,Delivery,25,phone
+T000398,C00361,2025-01-28 23:14:55,closed,Order Issue,30,phone
+T000399,C01062,2025-04-08 23:14:55,escalated,Delivery,23,chat
+T000400,C00760,2025-03-28 23:14:55,escalated,Product Question,48,chat
+T000401,C01107,2025-04-28 23:14:55,open,Order Issue,21,email
+T000402,C01093,2024-12-25 23:14:55,escalated,Product Question,26,phone
+T000403,C00561,2025-05-08 23:14:55,open,Product Question,31,email
+T000404,C00995,2025-07-27 23:14:55,escalated,Product Question,22,phone
+T000405,C00270,2025-01-20 23:14:55,open,Delivery,24,email
+T000406,C00298,2025-03-31 23:14:55,open,Product Question,30,email
+T000407,C01137,2025-08-22 23:14:55,escalated,Product Question,28,email
+T000408,C00141,2024-12-10 23:14:55,open,Product Question,41,email
+T000409,C00425,2025-07-30 23:14:55,open,Order Issue,21,phone
+T000410,C00085,2024-11-05 23:14:55,open,Product Question,57,phone
+T000411,C01139,2025-04-16 23:14:55,escalated,Delivery,55,chat
+T000412,C00864,2025-07-31 23:14:55,closed,Order Issue,28,phone
+T000413,C00556,2024-11-28 23:14:55,closed,Order Issue,64,phone
+T000414,C00526,2025-02-14 23:14:55,escalated,Order Issue,60,email
+T000415,C00362,2024-12-27 23:14:55,closed,Delivery,10,email
+T000416,C00070,2025-01-25 23:14:55,open,Return,62,email
+T000417,C00820,2025-04-11 23:14:55,open,Delivery,68,email
+T000418,C00279,2025-05-14 23:14:55,open,Return,7,phone
+T000419,C01040,2025-03-11 23:14:55,closed,Delivery,50,email
+T000420,C00157,2025-05-13 23:14:55,closed,Product Question,16,chat
+T000421,C00151,2025-07-04 23:14:55,open,Return,16,phone
+T000422,C00458,2024-10-31 23:14:55,closed,Order Issue,62,phone
+T000423,C00678,2024-10-07 23:14:55,open,Order Issue,11,email
+T000424,C00790,2024-12-14 23:14:55,open,Product Question,43,chat
+T000425,C00317,2025-08-10 23:14:55,closed,Return,34,chat
+T000426,C00936,2024-12-07 23:14:55,escalated,Return,28,chat
+T000427,C00785,2024-09-22 23:14:55,open,Order Issue,72,chat
+T000428,C00205,2024-11-25 23:14:55,closed,Return,46,phone
+T000429,C01073,2025-08-27 23:14:55,closed,Return,41,chat
+T000430,C01145,2025-02-22 23:14:55,closed,Order Issue,49,email
+T000431,C00050,2024-10-25 23:14:55,closed,Delivery,39,email
+T000432,C00249,2025-07-05 23:14:55,escalated,Order Issue,6,chat
+T000433,C00473,2024-12-06 23:14:55,escalated,Product Question,1,chat
+T000434,C00423,2025-08-09 23:14:55,closed,Delivery,22,phone
+T000435,C00593,2025-03-31 23:14:55,open,Delivery,31,chat
+T000436,C00335,2025-02-14 23:14:55,open,Return,68,email
+T000437,C00398,2024-08-16 23:14:55,open,Product Question,1,phone
+T000438,C00182,2025-05-11 23:14:55,escalated,Delivery,40,email
+T000439,C00831,2025-07-28 23:14:55,open,Return,40,chat
+T000440,C00455,2025-04-30 23:14:55,escalated,Product Question,19,email
+T000441,C00908,2024-11-25 23:14:55,closed,Order Issue,67,phone
+T000442,C00651,2025-04-15 23:14:55,closed,Delivery,20,email
+T000443,C00646,2025-04-29 23:14:55,open,Product Question,43,chat
+T000444,C00213,2025-01-01 23:14:55,escalated,Delivery,23,phone
+T000445,C00071,2025-06-07 23:14:55,open,Return,20,chat
+T000446,C00521,2025-07-30 23:14:55,open,Order Issue,65,chat
+T000447,C00785,2024-08-19 23:14:55,open,Return,69,email
+T000448,C00288,2025-01-22 23:14:55,closed,Return,67,phone
+T000449,C00897,2024-08-17 23:14:55,escalated,Delivery,22,chat
+T000450,C00084,2025-08-21 23:14:55,open,Return,10,chat
+T000451,C01125,2025-02-05 23:14:55,closed,Order Issue,40,phone
+T000452,C00589,2025-02-07 23:14:55,escalated,Delivery,30,chat
+T000453,C01085,2025-06-08 23:14:55,closed,Delivery,9,email
+T000454,C00524,2025-01-24 23:14:55,open,Delivery,59,chat
+T000455,C00877,2024-09-04 23:14:55,escalated,Delivery,53,chat
+T000456,C00646,2025-03-29 23:14:55,escalated,Delivery,30,email
+T000457,C00916,2025-04-18 23:14:55,closed,Order Issue,47,chat
+T000458,C01103,2025-01-13 23:14:55,open,Product Question,2,email
+T000459,C01019,2024-09-24 23:14:55,open,Order Issue,17,phone
+T000460,C00994,2025-09-08 23:14:55,escalated,Product Question,65,chat
+T000461,C01021,2024-08-16 23:14:55,open,Delivery,66,email
+T000462,C00320,2025-03-29 23:14:55,open,Delivery,6,chat
+T000463,C00823,2025-06-30 23:14:55,closed,Product Question,47,chat
+T000464,C01047,2025-06-30 23:14:55,closed,Delivery,32,phone
+T000465,C00828,2024-11-27 23:14:55,escalated,Return,36,phone
+T000466,C00543,2025-06-08 23:14:55,open,Return,20,chat
+T000467,C00890,2025-06-07 23:14:55,closed,Return,9,email
+T000468,C00662,2025-09-09 23:14:55,open,Delivery,26,email
+T000469,C00455,2025-07-11 23:14:55,open,Product Question,38,chat
+T000470,C00216,2025-04-19 23:14:55,open,Order Issue,1,phone
+T000471,C00470,2025-03-16 23:14:55,open,Product Question,36,phone
+T000472,C00769,2025-02-24 23:14:55,open,Return,63,chat
+T000473,C01087,2024-11-08 23:14:55,open,Order Issue,63,email
+T000474,C00559,2025-01-09 23:14:55,open,Product Question,31,email
+T000475,C00209,2025-05-02 23:14:55,closed,Delivery,21,chat
+T000476,C00048,2025-09-03 23:14:55,closed,Product Question,36,email
+T000477,C00382,2025-01-06 23:14:55,closed,Return,70,email
+T000478,C00993,2025-03-25 23:14:55,escalated,Product Question,39,chat
+T000479,C00492,2025-04-19 23:14:55,escalated,Return,63,phone
+T000480,C00042,2024-11-22 23:14:55,closed,Product Question,47,chat
+T000481,C00255,2024-12-05 23:14:55,closed,Delivery,32,email
+T000482,C01158,2025-05-15 23:14:55,open,Order Issue,64,chat
+T000483,C00650,2025-02-01 23:14:55,open,Order Issue,54,email
+T000484,C00906,2025-05-24 23:14:55,closed,Order Issue,50,chat
+T000485,C00500,2025-05-27 23:14:55,open,Return,33,chat
+T000486,C00389,2025-04-25 23:14:55,closed,Product Question,41,phone
+T000487,C00155,2024-09-20 23:14:55,closed,Product Question,51,chat
+T000488,C00571,2025-02-13 23:14:55,open,Return,3,phone
+T000489,C00965,2025-02-07 23:14:55,escalated,Return,35,chat
+T000490,C00393,2025-04-06 23:14:55,open,Return,7,chat
+T000491,C00353,2025-02-17 23:14:55,open,Return,58,chat
+T000492,C00224,2025-05-21 23:14:55,closed,Product Question,61,chat
+T000493,C00783,2024-08-16 23:14:55,escalated,Product Question,38,email
+T000494,C01033,2024-08-16 23:14:55,escalated,Product Question,38,email
+T000495,C00500,2025-02-02 23:14:55,closed,Product Question,40,email
+T000496,C00163,2025-01-31 23:14:55,open,Product Question,60,phone
+T000497,C00954,2025-04-27 23:14:55,escalated,Product Question,10,phone
+T000498,C00951,2024-12-25 23:14:55,closed,Product Question,34,chat
+T000499,C00684,2025-07-13 23:14:55,closed,Order Issue,22,email
+T000500,C00506,2025-06-25 23:14:55,escalated,Product Question,8,chat
+T000501,C00996,2024-12-09 23:14:55,escalated,Product Question,71,chat
+T000502,C00369,2025-02-01 23:14:55,closed,Order Issue,9,phone
+T000503,C00834,2024-09-19 23:14:55,closed,Product Question,0,chat
+T000504,C00254,2024-12-20 23:14:55,escalated,Order Issue,39,chat
+T000505,C00281,2025-08-13 23:14:55,escalated,Delivery,54,chat
+T000506,C00107,2024-11-29 23:14:55,open,Product Question,59,phone
+T000507,C00895,2024-12-04 23:14:55,open,Order Issue,38,chat
+T000508,C00366,2024-12-29 23:14:55,escalated,Delivery,5,chat
+T000509,C00944,2024-10-09 23:14:55,open,Return,48,phone
+T000510,C00910,2024-09-06 23:14:55,escalated,Return,20,phone
+T000511,C00047,2024-11-24 23:14:55,open,Return,39,email
+T000512,C00118,2024-08-11 23:14:55,closed,Product Question,57,chat
+T000513,C01144,2025-04-15 23:14:55,closed,Product Question,21,email
+T000514,C00233,2024-12-29 23:14:55,open,Product Question,43,email
+T000515,C00882,2025-04-05 23:14:55,closed,Return,38,chat
+T000516,C00447,2024-11-02 23:14:55,open,Delivery,17,chat
+T000517,C00123,2024-11-10 23:14:55,closed,Return,4,phone
+T000518,C00181,2025-05-31 23:14:55,open,Order Issue,51,email
+T000519,C00997,2025-04-19 23:14:55,open,Delivery,29,chat
+T000520,C01009,2025-01-03 23:14:55,closed,Delivery,23,chat
+T000521,C00283,2024-12-28 23:14:55,closed,Delivery,66,phone
+T000522,C00293,2024-12-27 23:14:55,closed,Delivery,52,email
+T000523,C00181,2025-03-08 23:14:55,open,Product Question,60,phone
+T000524,C01107,2024-11-12 23:14:55,escalated,Delivery,46,chat
+T000525,C00148,2025-06-05 23:14:55,escalated,Return,72,chat
+T000526,C01113,2025-08-02 23:14:55,escalated,Order Issue,32,email
+T000527,C00711,2025-03-21 23:14:55,closed,Product Question,52,chat
+T000528,C00310,2025-03-14 23:14:55,open,Order Issue,68,chat
+T000529,C00702,2025-06-06 23:14:55,closed,Order Issue,46,chat
+T000530,C01128,2025-06-04 23:14:55,open,Delivery,49,chat
+T000531,C00115,2025-07-05 23:14:55,escalated,Order Issue,40,phone
+T000532,C00213,2025-07-06 23:14:55,closed,Order Issue,18,phone
+T000533,C00621,2025-04-25 23:14:55,open,Order Issue,11,phone
+T000534,C00493,2024-09-11 23:14:55,open,Product Question,49,email
+T000535,C01140,2024-09-03 23:14:55,closed,Product Question,31,chat
+T000536,C00840,2024-09-25 23:14:55,closed,Product Question,69,phone
+T000537,C00083,2025-08-27 23:14:55,closed,Order Issue,8,email
+T000538,C00045,2024-09-20 23:14:55,closed,Return,22,email
+T000539,C00804,2025-03-31 23:14:55,escalated,Product Question,3,phone
+T000540,C00703,2025-04-10 23:14:55,escalated,Order Issue,47,phone
+T000541,C00147,2024-09-09 23:14:55,escalated,Order Issue,6,chat
+T000542,C00126,2025-02-05 23:14:55,open,Order Issue,65,chat
+T000543,C00913,2025-08-28 23:14:55,open,Order Issue,14,chat
+T000544,C00423,2025-07-23 23:14:55,open,Product Question,11,email
+T000545,C00037,2025-03-12 23:14:55,escalated,Delivery,5,phone
+T000546,C00137,2024-11-12 23:14:55,escalated,Delivery,0,email
+T000547,C00064,2024-10-19 23:14:55,open,Product Question,5,chat
+T000548,C01034,2025-06-20 23:14:55,escalated,Order Issue,15,email
+T000549,C00517,2024-11-02 23:14:55,escalated,Product Question,43,email
+T000550,C00048,2025-02-23 23:14:55,open,Delivery,17,chat
+T000551,C01154,2024-08-12 23:14:55,escalated,Return,62,email
+T000552,C00709,2025-07-10 23:14:55,escalated,Delivery,15,email
+T000553,C00760,2025-03-06 23:14:55,escalated,Return,56,chat
+T000554,C00895,2025-01-05 23:14:55,closed,Order Issue,32,email
+T000555,C00036,2025-06-12 23:14:55,closed,Order Issue,68,chat
+T000556,C00987,2025-05-28 23:14:55,open,Order Issue,1,email
+T000557,C00447,2024-12-24 23:14:55,escalated,Product Question,44,email
+T000558,C00547,2025-03-22 23:14:55,closed,Order Issue,1,chat
+T000559,C00462,2024-09-01 23:14:55,open,Product Question,14,chat
+T000560,C00254,2024-09-05 23:14:55,escalated,Return,35,chat
+T000561,C00030,2025-04-05 23:14:55,closed,Delivery,36,chat
+T000562,C00331,2025-04-13 23:14:55,closed,Delivery,19,phone
+T000563,C00484,2024-09-20 23:14:55,escalated,Order Issue,10,phone
+T000564,C00186,2024-10-15 23:14:55,escalated,Order Issue,52,chat
+T000565,C00464,2024-10-07 23:14:55,closed,Delivery,48,phone
+T000566,C00986,2024-10-05 23:14:55,escalated,Return,23,phone
+T000567,C00042,2025-02-05 23:14:55,open,Order Issue,65,chat
+T000568,C00942,2025-07-06 23:14:55,escalated,Delivery,64,chat
+T000569,C00949,2024-08-13 23:14:55,closed,Delivery,69,chat
+T000570,C00288,2025-06-29 23:14:55,closed,Product Question,66,chat
+T000571,C00827,2025-04-11 23:14:55,escalated,Product Question,11,phone
+T000572,C01154,2025-02-05 23:14:55,open,Delivery,28,phone
+T000573,C00409,2025-01-31 23:14:55,closed,Product Question,65,phone
+T000574,C00467,2025-03-29 23:14:55,open,Product Question,3,phone
+T000575,C00571,2025-04-30 23:14:55,open,Delivery,68,email
+T000576,C00444,2024-08-14 23:14:55,open,Order Issue,33,email
+T000577,C01084,2025-07-17 23:14:55,escalated,Product Question,59,email
+T000578,C01113,2024-10-13 23:14:55,open,Order Issue,24,email
+T000579,C00808,2025-01-26 23:14:55,open,Product Question,42,phone
+T000580,C00548,2025-04-24 23:14:55,open,Return,62,phone
+T000581,C00705,2025-07-28 23:14:55,open,Product Question,28,email
+T000582,C00809,2025-09-10 23:14:55,escalated,Product Question,67,chat
+T000583,C00621,2024-10-25 23:14:55,open,Order Issue,60,chat
+T000584,C00307,2025-09-06 23:14:55,escalated,Product Question,19,phone
+T000585,C00320,2024-10-02 23:14:55,closed,Order Issue,31,phone
+T000586,C00104,2024-10-16 23:14:55,closed,Delivery,24,phone
+T000587,C00114,2024-10-28 23:14:55,escalated,Product Question,16,chat
+T000588,C00282,2025-03-31 23:14:55,escalated,Return,40,chat
+T000589,C00368,2025-09-10 23:14:55,open,Order Issue,19,email
+T000590,C00679,2025-07-19 23:14:55,open,Return,61,chat
+T000591,C00220,2024-11-08 23:14:55,closed,Product Question,47,chat
+T000592,C00365,2025-02-18 23:14:55,closed,Return,9,chat
+T000593,C00578,2025-07-31 23:14:55,closed,Delivery,70,email
+T000594,C00261,2025-09-08 23:14:55,open,Order Issue,7,phone
+T000595,C00937,2024-11-29 23:14:55,open,Order Issue,31,email
+T000596,C00467,2025-03-04 23:14:55,closed,Order Issue,48,phone
+T000597,C00794,2024-10-07 23:14:55,open,Return,10,phone
+T000598,C00833,2024-11-28 23:14:55,open,Order Issue,59,chat
+T000599,C00665,2025-06-09 23:14:55,closed,Order Issue,12,email
+T000600,C00367,2025-01-20 23:14:55,closed,Return,44,chat

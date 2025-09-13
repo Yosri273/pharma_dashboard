@@ -1,0 +1,2 @@
+sessionid,timestamp,customerid,pageviews,events,city,channel,bounce,session_duration,conversion,source
+S763105,2025-06-04 23:14:55,C00842,10,3,Khobar,Web,0,488,0,organic

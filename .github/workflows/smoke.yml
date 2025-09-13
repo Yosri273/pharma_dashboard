@@ -1,0 +1,52 @@
+name: CI — Smoke comprehensive
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: pharma
+          POSTGRES_PASSWORD: pharma
+          POSTGRES_DB: pharma_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pharma -d pharma_db" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..15}; do
+            pg_isready -h localhost -p 5432 -U pharma && break || sleep 2
+          done
+
+      - name: Export DATABASE_URL
+        run: echo "DATABASE_URL=postgresql://pharma:pharma@localhost:5432/pharma_db" >> $GITHUB_ENV
+
+      - name: Run demo inserter
+        run: |
+          python -m scripts.insert_demo_data
+
+      - name: Run smoke comprehensive
+        run: |
+          python -m scripts.smoke_comprehensive

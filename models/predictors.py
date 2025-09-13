@@ -13,6 +13,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.metrics import brier_score_loss
+import logging
 
 from models.evaluation import get_classification_metrics
 
@@ -63,9 +66,17 @@ class DemandForecaster:
         sim_forecast = base_forecast.copy()
         multiplier = 1.0 + (promo_uplift_pct / 100.0)
 
-        # Apply multiplier ONLY to future dates
-        past_rows = sim_forecast['ds'] <= self.model.history_dates.max()
-        future_rows = sim_forecast['ds'] > self.model.history_dates.max()
+        # Apply multiplier ONLY to future dates. Prophet stores training history in self.model.history (DataFrame)
+        try:
+            history_max = self.model.history['ds'].max()
+        except Exception:
+            history_max = None
+        if history_max is not None:
+            past_rows = sim_forecast['ds'] <= history_max
+            future_rows = sim_forecast['ds'] > history_max
+        else:
+            past_rows = sim_forecast['ds'] <= sim_forecast['ds'].min()
+            future_rows = sim_forecast['ds'] > sim_forecast['ds'].min()
 
         sim_forecast.loc[future_rows, ['yhat', 'yhat_lower', 'yhat_upper']] *= multiplier
         
@@ -122,35 +133,153 @@ class ChurnPredictor:
 
 
     def fit(self, features_df: pd.DataFrame):
-        """Trains the preprocessing pipeline and the XGBoost classifier."""
-        X = features_df[self.numeric_features + self.categorical_features]
-        y = features_df[self.target]
+        """Trains the preprocessing pipeline and the XGBoost classifier.
 
-        # Split the data
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-        
-        # Fit the full pipeline
-        self.pipeline.fit(X_train, y_train)
+        This method is tolerant to different column casings produced by ETL and
+        feature builders. It will map lowercase/underscored names to the
+        canonical names expected by the pipeline.
+        """
+        # Normalize input column names to a predictable form and map to expected casing
+        cols_map = {c.lower(): c for c in features_df.columns}
+
+        def _map_col(name_variants):
+            for v in name_variants:
+                if v.lower() in cols_map:
+                    return cols_map[v.lower()]
+            return None
+
+        # Build lists of existing column names matching expected features
+        numeric_cols = []
+        for nf in self.numeric_features:
+            mapped = _map_col([nf, nf.lower()])
+            if mapped is None:
+                raise KeyError(f"Required numeric feature '{nf}' not found in features_df columns: {list(features_df.columns)}")
+            numeric_cols.append(mapped)
+
+        categorical_cols = []
+        for cf in self.categorical_features:
+            mapped = _map_col([cf, cf.lower()])
+            if mapped is None:
+                # If a categorical column is missing, create a placeholder column with NaNs so OneHotEncoder can handle it
+                features_df[cf] = pd.NA
+                categorical_cols.append(cf)
+            else:
+                categorical_cols.append(mapped)
+
+        target_col = _map_col([self.target, self.target.lower()])
+        if target_col is None:
+            raise KeyError(f"Target column '{self.target}' not found in features_df columns")
+
+        X = features_df[numeric_cols + categorical_cols]
+        y = features_df[target_col]
+
+        # --- Train/validation split ---
+        # Prefer stratified split on the target to preserve class balance when possible.
+        stratify_arg = None
+        try:
+            # if y has at least 2 classes and enough samples per class, stratify
+            class_counts = y.value_counts()
+            if class_counts.min() >= 2 and class_counts.shape[0] >= 2:
+                stratify_arg = y
+        except Exception:
+            stratify_arg = None
+
+        # If data has a datetime-like index or 'joindate'/'timestamp', a time-aware split is preferable.
+        # For now, fall back to stratified random split.
+        if stratify_arg is not None:
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=stratify_arg)
+        else:
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        # Basic class-balance check
+        try:
+            train_counts = y_train.value_counts().to_dict()
+            test_counts = y_test.value_counts().to_dict()
+        except Exception:
+            train_counts, test_counts = {}, {}
+
+        # --- Fit preprocessing separately so we can train classifier with eval_set and early stopping ---
+        # Fit preprocessor on training data
+        self.preprocessor.fit(X_train)
+        X_train_trans = self.preprocessor.transform(X_train)
+        X_test_trans = self.preprocessor.transform(X_test)
+
+        # Fit classifier with early stopping using validation set
+        clf = self.model
+        try:
+            clf.fit(X_train_trans, y_train, eval_set=[(X_test_trans, y_test)], early_stopping_rounds=10, verbose=False)
+        except TypeError:
+            # older sklearn/xgboost wrappers may not accept early stopping via fit kwargs through sklearn API
+            clf.fit(X_train_trans, y_train)
+
+        # Optionally calibrate probabilities to improve probability quality
+        calibrated = None
+        try:
+            calibrator = CalibratedClassifierCV(base_estimator=clf, cv='prefit', method='isotonic')
+            calibrator.fit(X_test_trans, y_test)
+            calibrated = calibrator
+            final_clf = calibrated
+        except Exception:
+            # fall back to uncalibrated classifier
+            final_clf = clf
+
+        # Assemble the final pipeline with preprocessor and the trained (optionally calibrated) classifier
+        self.pipeline = Pipeline(steps=[('preprocessor', self.preprocessor), ('classifier', final_clf)])
 
         # --- Evaluate and Store Metrics ---
-        y_pred_proba = self.pipeline.predict_proba(X_test)[:, 1]
-        y_pred_binary = self.pipeline.predict(X_test)
-        
+        try:
+            y_pred_proba = self.pipeline.predict_proba(X_test)[:, 1]
+            y_pred_binary = self.pipeline.predict(X_test)
+        except Exception:
+            # if predict_proba on pipeline fails (rare), fall back to classifier directly
+            try:
+                y_pred_proba = final_clf.predict_proba(X_test_trans)[:, 1]
+                y_pred_binary = final_clf.predict(X_test_trans)
+            except Exception:
+                y_pred_proba = None
+                y_pred_binary = None
+
         metrics = get_classification_metrics(y_test, y_pred_proba, y_pred_binary)
-        print(f"Churn Model Training Complete. Test AUC: {metrics['auc']:.4f}, Accuracy: {metrics['accuracy']:.4f}")
+        try:
+            if y_pred_proba is not None:
+                metrics['brier'] = float(brier_score_loss(y_test, y_pred_proba))
+        except Exception:
+            pass
+
+        print(f"Churn Model Training Complete. Test AUC: {metrics.get('auc', 0):.4f}, Accuracy: {metrics.get('accuracy', 0):.4f}")
 
         # --- Generate Feature Importance (SHAP) ---
-        # Get processed feature names after one-hot encoding
         try:
-            ohe_categories = self.pipeline.named_steps['preprocessor'].named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(self.categorical_features)
+            # Extract fitted OneHotEncoder to compute output feature names
+            ohe = self.preprocessor.named_transformers_['cat'].named_steps['onehot']
+            if hasattr(ohe, 'get_feature_names_out'):
+                ohe_categories = ohe.get_feature_names_out(self.categorical_features)
+            else:
+                ohe_categories = ohe.get_feature_names(self.categorical_features)
             self.feature_names = self.numeric_features + list(ohe_categories)
-        except:
-             # Fallback for older sklearn versions
-            self.feature_names = self.numeric_features + list(self.pipeline.named_steps['preprocessor'].named_transformers_['cat'].named_steps['onehot'].get_feature_names(self.categorical_features))
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Could not extract OHE feature names reliably: {e}")
+            self.feature_names = self.numeric_features + self.categorical_features
 
-        # Create SHAP explainer for key drivers
-        X_train_transformed = self.pipeline.named_steps['preprocessor'].transform(X_train)
-        self.shap_explainer = shap.TreeExplainer(self.pipeline.named_steps['classifier'], data=X_train_transformed)
+        # Create SHAP explainer for key drivers (best-effort)
+        try:
+            # prefer the underlying xgboost booster where possible
+            clf_for_shap = None
+            if hasattr(final_clf, 'base_estimator'):
+                clf_for_shap = getattr(final_clf, 'base_estimator')
+            elif hasattr(final_clf, 'estimator'):
+                clf_for_shap = getattr(final_clf, 'estimator')
+            else:
+                clf_for_shap = final_clf
+
+            X_train_transformed = self.preprocessor.transform(X_train)
+            self.shap_explainer = shap.TreeExplainer(clf_for_shap, data=X_train_transformed)
+        except Exception:
+            logging.getLogger(__name__).exception('Failed to create SHAP explainer')
+
+        # Add training metadata to metrics for later persistence
+        metrics['_train_counts'] = train_counts
+        metrics['_test_counts'] = test_counts
 
         return self, metrics
 
@@ -162,7 +291,27 @@ class ChurnPredictor:
         if not hasattr(self.pipeline, 'classes_'):
              raise RuntimeError("Model has not been fitted yet. Run fit() first.")
              
-        X_features = features_df[self.numeric_features + self.categorical_features]
+        # Map incoming features similarly to fit()
+        cols_map = {c.lower(): c for c in features_df.columns}
+
+        def _map_col(name_variants):
+            for v in name_variants:
+                if v.lower() in cols_map:
+                    return cols_map[v.lower()]
+            return None
+
+        numeric_cols = [_map_col([nf, nf.lower()]) for nf in self.numeric_features]
+        categorical_cols = []
+        for cf in self.categorical_features:
+            mapped = _map_col([cf, cf.lower()])
+            if mapped is None:
+                # create placeholder column if missing
+                features_df[cf] = pd.NA
+                categorical_cols.append(cf)
+            else:
+                categorical_cols.append(mapped)
+
+        X_features = features_df[numeric_cols + categorical_cols]
         
         # Predict probability of Churn (class 1)
         churn_proba = self.pipeline.predict_proba(X_features)[:, 1]
@@ -198,20 +347,33 @@ class ChurnPredictor:
         if self.shap_explainer is None:
             raise RuntimeError("SHAP Explainer not available. Run fit() first.")
 
-        # Get the underlying transformed data used by the explainer
-        X_transformed_shap = pd.DataFrame(self.shap_explainer.data, columns=self.feature_names)
-        
-        # Calculate SHAP values
-        shap_values = self.shap_explainer.values_for_class(1) # Values for "Churned" class
-        
-        # Calculate mean absolute SHAP value per feature
-        mean_abs_shap = pd.DataFrame(
-            np.abs(shap_values).mean(axis=0),
-            index=self.feature_names,
-            columns=['FeatureImportance']
-        ).reset_index()
-        
-        mean_abs_shap = mean_abs_shap.rename(columns={'index': 'Feature'})
-        mean_abs_shap = mean_abs_shap.sort_values(by='FeatureImportance', ascending=False)
-        
-        return mean_abs_shap
+        # Some SHAP explainer implementations expose different attributes across versions.
+        try:
+            shap_data = getattr(self.shap_explainer, 'data', None)
+            shap_values = None
+            # shap.Kernel or Tree explainers may expose `values` or `values_for_class` depending on model
+            if hasattr(self.shap_explainer, 'values_for_class'):
+                shap_values = self.shap_explainer.values_for_class(1)
+            elif hasattr(self.shap_explainer, 'values'):
+                shap_values = self.shap_explainer.values
+
+            if shap_values is None:
+                raise RuntimeError('Unable to extract shap values from explainer')
+
+            # Ensure feature_names length matches shap_values second-dimension
+            feature_names = self.feature_names or [f'f{i}' for i in range(shap_values.shape[1])]
+
+            mean_abs_shap = pd.DataFrame(
+                np.abs(shap_values).mean(axis=0),
+                index=feature_names,
+                columns=['FeatureImportance']
+            ).reset_index()
+
+            mean_abs_shap = mean_abs_shap.rename(columns={'index': 'Feature'})
+            mean_abs_shap = mean_abs_shap.sort_values(by='FeatureImportance', ascending=False)
+            return mean_abs_shap
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception(f"Failed to compute SHAP summary: {e}")
+            # Return an empty DataFrame with expected columns to keep UI stable
+            return pd.DataFrame(columns=['Feature', 'FeatureImportance'])

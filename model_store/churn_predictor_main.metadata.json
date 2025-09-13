@@ -1,0 +1,1 @@
+{"trained_at": 1757805964.69831, "metrics": {"auc": 1.0, "accuracy": 1.0, "brier": 4.002336401052602e-06, "_train_counts": {"0": 502, "1": 458}, "_test_counts": {"0": 126, "1": 114}}, "training_rows": 1200, "model_path": "/Users/mohamedyousri/pharma_dashboard/model_store/churn_predictor_main.joblib"}

@@ -292,7 +292,7 @@ def register_callbacks(app):
     def render_tab_content(active_tab):
         from app.layout import create_sales_layout, create_delivery_layout, create_customer_layout, create_marketing_layout, create_profit_layout, create_predictive_layout
         layouts = {"sales-tab": create_sales_layout, "delivery-tab": create_delivery_layout, "customer-tab": create_customer_layout, "marketing-tab": create_marketing_layout, "profit-tab": create_profit_layout, "predictive-tab": create_predictive_layout}
-        return layouts.get(active_tab, lambda: html.H4("Tab not found."))()
+    return layouts.get(active_tab, lambda: html.Div())()
 
     # --- DASHBOARD & EXPORT CALLBACKS ---
 

@@ -70,15 +70,45 @@ def _enrich_delivery_data(df: pd.DataFrame) -> pd.DataFrame:
 def _calculate_campaign_performance(sales_df: pd.DataFrame, campaigns_df: pd.DataFrame, attribution_df: pd.DataFrame) -> pd.DataFrame:
     """Calculates ROAS and CPA for the Marketing tab."""
     logger.info("Calculating campaign performance dataframe...")
-    if sales_df.empty or campaigns_df.empty or attribution_df.empty: return pd.DataFrame()
-    sales_subset = sales_df[['orderid', 'netsale']].drop_duplicates()
-    attributed_sales = pd.merge(attribution_df, sales_subset, on='orderid', how='left')
-    campaign_performance = attributed_sales.groupby('campaignid').agg(netsale=('netsale', 'sum'), conversions=('orderid', 'nunique')).reset_index()
+    if sales_df.empty or campaigns_df.empty or attribution_df.empty:
+        return pd.DataFrame()
+
+    # Safely build a sales subset; tolerate missing columns
+    sales_subset = sales_df[[c for c in ['orderid', 'netsale'] if c in sales_df.columns]].drop_duplicates()
+
+    # If attribution table doesn't include orderid, create an empty merged frame
+    if 'orderid' in attribution_df.columns and not sales_subset.empty:
+        attributed_sales = pd.merge(attribution_df, sales_subset, on='orderid', how='left')
+    else:
+        # Create an empty DataFrame with expected grouping keys
+        attributed_sales = pd.DataFrame(columns=['campaignid', 'orderid', 'netsale'])
+
+    # Compute aggregates defensively
+    if 'campaignid' in attributed_sales.columns and not attributed_sales.empty:
+        campaign_performance = attributed_sales.groupby('campaignid').agg(
+            netsale=('netsale', 'sum') if 'netsale' in attributed_sales.columns else ('orderid', lambda s: 0),
+            conversions=('orderid', 'nunique') if 'orderid' in attributed_sales.columns else pd.NamedAgg(column='orderid', aggfunc=lambda s: 0)
+        ).reset_index()
+    else:
+        # No attribution info available — produce empty performance table
+        campaign_performance = pd.DataFrame(columns=['campaignid', 'netsale', 'conversions'])
+
     campaign_analysis_df = pd.merge(campaigns_df, campaign_performance, on='campaignid', how='left')
-    campaign_analysis_df['netsale'] = campaign_analysis_df['netsale'].fillna(0)
-    campaign_analysis_df['conversions'] = campaign_analysis_df['conversions'].fillna(0)
-    campaign_analysis_df['roas'] = np.where(campaign_analysis_df['totalcost'] == 0, 0, campaign_analysis_df['netsale'] / campaign_analysis_df['totalcost'])
-    campaign_analysis_df['cpa'] = np.where(campaign_analysis_df['conversions'] == 0, 0, campaign_analysis_df['totalcost'] / campaign_analysis_df['conversions'])
+
+    # Ensure required numeric columns exist and are zero-filled
+    if 'netsale' not in campaign_analysis_df.columns:
+        campaign_analysis_df['netsale'] = 0
+    else:
+        campaign_analysis_df['netsale'] = campaign_analysis_df['netsale'].fillna(0)
+
+    if 'conversions' not in campaign_analysis_df.columns:
+        campaign_analysis_df['conversions'] = 0
+    else:
+        campaign_analysis_df['conversions'] = campaign_analysis_df['conversions'].fillna(0)
+
+    # Compute ROAS and CPA safely
+    campaign_analysis_df['roas'] = np.where(campaign_analysis_df.get('totalcost', 0) == 0, 0, campaign_analysis_df['netsale'] / campaign_analysis_df.get('totalcost', 0))
+    campaign_analysis_df['cpa'] = np.where(campaign_analysis_df['conversions'] == 0, 0, campaign_analysis_df.get('totalcost', 0) / campaign_analysis_df['conversions'])
     return campaign_analysis_df
 
 def _calculate_profit_analysis(sales_df: pd.DataFrame) -> pd.DataFrame:

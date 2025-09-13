@@ -25,7 +25,7 @@ if __name__ == '__main__':
     print("Starting scheduler and web server...")
     try:
         # We use the configuration from the original app.py
-        app.run(debug=True, port=8053)
+        app.run(debug=True, port=8056)
     except (KeyboardInterrupt, SystemExit):
         print("Shutting down scheduler...")
         scheduler.shutdown()
