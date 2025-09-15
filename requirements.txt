@@ -42,8 +42,6 @@ itsdangerous==2.2.0
 Jinja2==3.1.6
 joblib==1.5.2
 kaleido==1.0.0
- # Updated on 2025-09-15T02:47:25Z by branch work/update-requirements-20250915T024725Z
-```pip-requirements
 amqp==5.3.1
 annotated-types==0.7.0
 appdirs==1.4.4
@@ -155,5 +153,3 @@ websockets==10.4
 Werkzeug==3.0.6
 xgboost==3.0.5
 zipp==3.23.0
-
-```
