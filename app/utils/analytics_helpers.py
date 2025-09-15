@@ -265,8 +265,21 @@ def generate_profit_analytics(start_date, end_date, selected_regions, selected_c
         elif 'locationid' in dff.columns:
             dff = dff.loc[dff['locationid'].isin(selected_branches)]
     if dff.empty: return {"is_empty": True}
-    total_net_profit, avg_profit_margin, profit_lost_to_returns = dff['net_profit'].sum(), dff['profit_margin'].mean(), dff[dff['orderstatus'] == 'Returned']['net_profit'].sum()
-    kpis = {"kpi_profit": create_kpi_body("Total Net Profit", f"{total_net_profit:,.2f} SAR"), "kpi_margin": create_kpi_body("Average Profit Margin", f"{avg_profit_margin:.2f}%"), "kpi_returns": create_kpi_body("Profit Lost to Returns", f"{profit_lost_to_returns:,.2f} SAR")}
+    total_net_profit = dff['net_profit'].sum()
+    avg_profit_margin = dff['profit_margin'].mean()  # percent (e.g., 22.1)
+    profit_lost_to_returns = dff[dff['orderstatus'] == 'Returned']['net_profit'].sum()
+    # Additional numeric KPIs for recommendation engine
+    total_orders = dff['orderid'].nunique() if 'orderid' in dff.columns else len(dff)
+    total_revenue = dff['netsale'].sum() if 'netsale' in dff.columns else None
+    return_rate = (
+        (dff[dff['orderstatus'] == 'Returned']['orderid'].nunique() / total_orders * 100)
+        if total_orders and 'orderstatus' in dff.columns and 'orderid' in dff.columns else None
+    )
+    kpis = {
+        "kpi_profit": create_kpi_body("Total Net Profit", f"{total_net_profit:,.2f} SAR"),
+        "kpi_margin": create_kpi_body("Average Profit Margin", f"{avg_profit_margin:.2f}%"),
+        "kpi_returns": create_kpi_body("Profit Lost to Returns", f"{profit_lost_to_returns:,.2f} SAR"),
+    }
     profit_by_channel = dff.groupby('channel')['net_profit'].sum().reset_index()
     high_margin_prods = dff.groupby('productname')['profit_margin'].mean().nlargest(10).reset_index()
     figures = {
@@ -282,12 +295,61 @@ def generate_profit_analytics(start_date, end_date, selected_regions, selected_c
         figures['profit_waterfall_fig'] = set_dark_theme(go.Figure(go.Waterfall(name="Profit Breakdown", orientation="v", measure=["absolute", "relative", "relative", "relative", "relative", "total"], x=waterfall_df['measure'], y=waterfall_df['amount'])))
     else:
         figures['profit_waterfall_fig'] = create_placeholder_figure("Not enough data for Waterfall chart")
+    # Cross-context helpers for recommendation engine
+    product_margins = {}
+    try:
+        if 'productname' in dff.columns and 'profit_margin' in dff.columns:
+            product_margins = (
+                dff.groupby('productname')['profit_margin']
+                .mean()
+                .dropna()
+                .to_dict()
+            )
+    except Exception:
+        product_margins = {}
+
+    marketing_campaigns_ctx = {}
+    try:
+        # Use precomputed campaign performance if available
+        cpdf = DATA.get('campaign_performance_df', pd.DataFrame())
+        if not cpdf.empty:
+            # Prefer campaignname as key; fall back to id
+            key_col = 'campaignname' if 'campaignname' in cpdf.columns else 'campaignid'
+            for _, row in cpdf.iterrows():
+                key = row.get(key_col)
+                if pd.isna(key):
+                    continue
+                marketing_campaigns_ctx[str(key)] = {
+                    'spend': float(row.get('totalcost', 0) or 0),
+                    'roas': float(row.get('roas', 0) or 0),
+                    'cpa': float(row.get('cpa', 0) or 0),
+                }
+    except Exception:
+        marketing_campaigns_ctx = {}
+
     recommendations = []
     if not pd.isna(total_net_profit) and total_net_profit > 0 and not pd.isna(profit_lost_to_returns) and profit_lost_to_returns > (total_net_profit * 0.1): recommendations.append(html.Li("High profit loss from returns detected."))
     if not profit_by_channel[profit_by_channel['net_profit'] < 0].empty: recommendations.append(html.Li(f"Channel '{profit_by_channel[profit_by_channel['net_profit'] < 0].iloc[0]['channel']}' is unprofitable."))
     if not high_margin_prods.empty: recommendations.append(html.Li(f"'{high_margin_prods.iloc[0]['productname']}' has a high margin. Consider promoting it."))
     tables = {"high_margin_products": high_margin_prods}
-    return {"is_empty": False, "kpis": kpis, "figures": figures, "tables": tables, "recommendations": html.Ul(recommendations) if recommendations else html.P("No critical issues detected.")}
+    # Provide raw numeric KPIs for downstream logic
+    numeric_kpis = {
+        'net_profit': float(total_net_profit) if total_net_profit is not None else None,
+        'gross_margin': float(avg_profit_margin) if avg_profit_margin is not None else None,  # percent; engine will normalize
+        'return_rate': float(return_rate) if return_rate is not None else None,  # percent
+        'aov': float(total_revenue / total_orders) if total_revenue and total_orders else None,
+    }
+    return {
+        "is_empty": False,
+        "kpis": kpis,
+        "figures": figures,
+        "tables": tables,
+        "recommendations": html.Ul(recommendations) if recommendations else html.P("No critical issues detected."),
+        # extra context for rec engine
+        "kpi_values": numeric_kpis,
+        "product_margins": product_margins,
+        "marketing_campaigns": marketing_campaigns_ctx,
+    }
 
 
 def run_churn_training_job(job_id: str = None):
@@ -416,6 +478,37 @@ def run_churn_training_job(job_id: str = None):
             except Exception:
                 pass
 
+        # Persist predictions to DB and to the in-memory DATA store for immediate UI availability
+        try:
+            if job_id and update_status:
+                try:
+                    update_status(job_id, 'progress', {'phase': 'saving_predictions', 'percent': 92})
+                except Exception:
+                    pass
+            preds_full = predictor_instance.predict_churn_probability(latest_features_df)
+            # Standardize column names expected downstream
+            # Save both UI-cased and snake_case for compatibility
+            preds_to_store = preds_full.copy()
+            if 'ChurnProbability' in preds_to_store.columns and 'churn_probability' not in preds_to_store.columns:
+                preds_to_store['churn_probability'] = preds_to_store['ChurnProbability']
+            if 'Estimated_LTV' not in preds_to_store.columns and 'estimated_ltv' in preds_to_store.columns:
+                preds_to_store.rename(columns={'estimated_ltv': 'Estimated_LTV'}, inplace=True)
+            # Update in-memory store so UI can use canonical predictions immediately
+            try:
+                from etl.transforms import DATA as _DATA
+                _DATA['predictions_df'] = preds_to_store[['customerid', 'churn_probability', 'Estimated_LTV']].copy()
+            except Exception:
+                pass
+            # Save to DB table if possible
+            try:
+                from services.db import get_engine as _get_engine
+                engine = _get_engine()
+                preds_to_store[['customerid', 'churn_probability', 'Estimated_LTV']].to_sql('customer_churn_predictions', engine, if_exists='replace', index=False)
+            except Exception:
+                logger.exception('Failed to persist predictions to database')
+        except Exception:
+            logger.exception('Failed to generate/persist churn predictions after training')
+
         # Persist simple metadata for auditability and UI display
         try:
             import json, time, os
@@ -462,17 +555,51 @@ def get_shap_summary(model_path: str, top_n: int = 20):
         if not os.path.exists(model_path):
             return []
         mdl = joblib.load(model_path)
+        # Prefer a precomputed summary on the model if present
+        summ = getattr(mdl, 'shap_summary_', None)
+        if summ is not None and len(getattr(summ, 'columns', [])) >= 2:
+            try:
+                # Normalize to expected keys
+                # summ may have ['Feature','FeatureImportance'] or similar
+                if 'Feature' in summ.columns and 'FeatureImportance' in summ.columns:
+                    tmp = summ[['Feature', 'FeatureImportance']].copy()
+                    tmp = tmp.head(top_n)
+                    return [
+                        {'Feature': str(r.Feature), 'MeanAbsSHAP': float(r.FeatureImportance)}
+                        for r in tmp.itertuples(index=False)
+                    ]
+            except Exception:
+                pass
+
+        # Fallback to explainer-based computation
         if not hasattr(mdl, 'shap_explainer') or mdl.shap_explainer is None:
             return []
         feature_names = getattr(mdl, 'feature_names', None)
         shap_exp = mdl.shap_explainer
         try:
-            shap_values = shap_exp.values_for_class(1)
+            exp = None
+            # Use stored background data if available on explainer
+            bg = getattr(shap_exp, 'data', None)
+            if bg is not None:
+                try:
+                    if hasattr(bg, 'toarray'):
+                        bg = bg.toarray()
+                except Exception:
+                    pass
+                try:
+                    exp = shap_exp(bg)
+                except Exception:
+                    exp = None
+            if exp is None:
+                # Try direct attributes
+                if hasattr(shap_exp, 'values_for_class'):
+                    shap_values = shap_exp.values_for_class(1)
+                else:
+                    shap_values = getattr(shap_exp, 'values', None)
+            else:
+                shap_values = getattr(exp, 'values', exp)
         except Exception:
-            try:
-                shap_values = shap_exp.values
-            except Exception:
-                return []
+            return []
         import numpy as _np
         mean_abs = _np.abs(shap_values).mean(axis=0)
         cols = feature_names if feature_names is not None else [f'f{i}' for i in range(len(mean_abs))]

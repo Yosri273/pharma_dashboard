@@ -1,0 +1,5 @@
+{
+  "on_time_delivery_warning": 0.9,
+  "avg_delivery_time_warning_days": 5,
+  "return_rate_warning": 0.08
+}

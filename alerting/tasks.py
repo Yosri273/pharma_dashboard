@@ -2,7 +2,7 @@ from celery import shared_task
 from services.db import get_db_connection # INTEGRATION: Uses your existing DB service
 from alerting import checks # The file with check functions (from plan V1)
 from alerting.notifiers import Notifier
-from datetime import datetime
+from datetime import datetime, timezone
 
 @shared_task(name="alerting.run_all_checks")
 def run_all_checks():
@@ -32,9 +32,9 @@ def run_all_checks():
         # 2. Get previous state
         was_active = current_states.get(alert_config.id, {}).get("is_active", False)
 
-        # 3. Apply state change logic
-        now = datetime.utcnow()
-        if is_triggered and not was_active:
+    # 3. Apply state change logic
+    now = datetime.now(timezone.utc)
+    if is_triggered and not was_active:
             # STATE CHANGE: OK -> ALERT
             print(f"NEW ALERT: {alert_config.alert_name}")
             notifier.dispatch(...)
@@ -43,8 +43,7 @@ def run_all_checks():
                    VALUES (?, true, ?, ?) ON CONFLICT(alert_config_id) DO UPDATE SET ...""",
                 (alert_config.id, message, now)
             )
-            
-        elif not is_triggered and was_active:
+    elif not is_triggered and was_active:
             # STATE CHANGE: ALERT -> OK
             print(f"RESOLVED: {alert_config.alert_name}")
             # (Optionally send resolution notification)
@@ -52,10 +51,9 @@ def run_all_checks():
                 "UPDATE ActiveAlertState SET is_active = false, last_resolved_at = ? WHERE alert_config_id = ?",
                 (now, alert_config.id)
             )
-        
-        elif is_triggered and was_active:
+    elif is_triggered and was_active:
             # STATE: REMAINS ACTIVE. Just update the message/timestamp
-             db.execute(
+            db.execute(
                 "UPDATE ActiveAlertState SET current_message = ?, last_triggered_at = ? WHERE alert_config_id = ?",
                 (message, now, alert_config.id)
             )

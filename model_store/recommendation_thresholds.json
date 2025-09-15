@@ -1,0 +1,10 @@
+{
+  "existing_threshold": 1,
+  "conversion_rate_warning": 0.03,
+  "gross_margin_warning": 0.18,
+  "gross_margin_critical": 0.1,
+  "return_rate_warning": 0.07,
+  "test_kpi_info": 1.5,
+  "test_kpi_warning": 2,
+  "test_kpi_critical": null
+}

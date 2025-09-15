@@ -12,6 +12,9 @@ from app.reporting import generate_pdf_report
 from etl.transforms import DATA
 import pandas as pd
 from app.utils.ui_helpers import create_multi_filter_options
+from app.analysis.recommendation_engine import generate_contextual_recommendations
+from app.analysis.ui_helpers import render_recommendations
+from app.analysis.kpi_utils import normalize_kpis
 
 # Server-side typeahead limit for products
 TOP_PRODUCT_OPTIONS = 200
@@ -31,17 +34,22 @@ def register_profit_callbacks(app):
             Output('low-margin-products-chart', 'figure'),
             Output('automated-recommendations-list', 'children')
         ],
-        Input('profit-apply-btn', 'n_clicks'),
+    Input('profit-apply-btn', 'n_clicks'),
+        Input('profit-refresh-recs-btn', 'n_clicks'),
+    Input('profit-thresholds-saved-signal', 'data'),
         [
             State('profit-date-picker', 'start_date'),
             State('profit-date-picker', 'end_date'),
             State('profit-region-filter', 'value'),
             State('profit-category-filter', 'value'),
             State('profit-product-filter', 'value'),
-            State('profit-branch-filter', 'value')
+        State('profit-branch-filter', 'value'),
+        State('profit-rec-severity-filter', 'value')
         ]
     )
-    def update_profit_dashboard(n, sd, ed, sr, sca, product_filter, branch_filter):
+    def update_profit_dashboard(n, refresh_click, saved_signal, sd, ed, sr, sca, product_filter, branch_filter, severity_filter):
+        # Either clicking Apply or Refresh Recommendations triggers recompute using current state.
+        _ = (refresh_click, saved_signal)
         product_filter = product_filter or ['All']
         branch_filter = branch_filter or ['All']
         analytics = generate_profit_analytics(sd, ed, sr, sca, product_filter, branch_filter)
@@ -70,6 +78,34 @@ def register_profit_callbacks(app):
             ]
         else:
             kpi_list = list(analytics["kpis"].values())
+        # Build cross_context and render recommendations
+        # Normalize KPI dict for engine using shared helper
+        # Prefer ETL raw KPIs (numeric) for recommendation engine; fallback to analytics numeric kpi_values; then UI KPIs
+        kpis_src = etl_kpis or {}
+        if not kpis_src:
+            kpis_src = analytics.get('kpi_values', {}) or analytics.get('kpis', {}) or {}
+        normalized = normalize_kpis(kpis_src)
+
+        # Include synthesis KPIs (e.g., clv_cac_ratio) when available
+        try:
+            from etl import transforms as _T
+            synth = _T.DATA.get('synthesis_kpis', {}) or {}
+        except Exception:
+            synth = {}
+
+        cross_context = {
+            'kpis': normalized,
+            'product_margins': analytics.get('product_margins', {}),
+            'sales_attribution': analytics.get('sales_attribution', {}),
+            'marketing_campaigns': analytics.get('marketing_campaigns', {}),
+            'synthesis_kpis': synth,
+        }
+        rec_objs = generate_contextual_recommendations('profit', ["Profit analysis available"], cross_context)
+        if severity_filter and str(severity_filter).lower() != 'all':
+            whitelist = [str(severity_filter).lower()]
+        else:
+            whitelist = None
+        rec_component = render_recommendations(rec_objs, accordion_id='profit-recs-accordion', severity_whitelist=whitelist)
 
         return (
             kpi_list +
@@ -79,7 +115,7 @@ def register_profit_callbacks(app):
                 figs['profit_by_cat_fig'],
                 figs['high_margin_fig'],
                 figs['low_margin_fig'],
-                analytics["recommendations"]
+                rec_component
             ]
         )
 

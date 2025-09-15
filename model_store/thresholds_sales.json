@@ -1,0 +1,9 @@
+{
+  "conversion_rate_warning": 0.05,
+  "conversion_rate_critical": 0.02,
+  "gross_margin_warning": 0.2,
+  "gross_margin_critical": 0.1,
+  "aov_warning": 35,
+  "aov_info": 20,
+  "return_rate_warning": 0.08
+}

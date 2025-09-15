@@ -6,7 +6,7 @@ retention, writes reports under `reports/`, and returns a dict with results.
 """
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pd
 import numpy as np
 
@@ -60,7 +60,7 @@ def generate_sessions_report(base_path=None, save=True):
         except Exception:
             return 0.0
 
-    out = {'generated_at': datetime.utcnow().isoformat()}
+    out = {'generated_at': datetime.now(timezone.utc).isoformat()}
     out['total_sessions'] = int(combined.shape[0])
     out['unique_users'] = int(combined[user_col].nunique()) if user_col and user_col in combined.columns else 0
     out['bounce_rate'] = safe_mean(combined[bounce_col]) if bounce_col and bounce_col in combined.columns else 0.0

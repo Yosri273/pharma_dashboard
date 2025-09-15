@@ -9,6 +9,9 @@ from datetime import datetime
 from app.utils.analytics_helpers import generate_delivery_analytics
 from app.utils import create_placeholder_figure, create_kpi_body
 from app.reporting import generate_pdf_report
+from app.analysis.recommendation_engine import generate_contextual_recommendations
+from app.analysis.ui_helpers import render_recommendations
+from app.analysis.kpi_utils import normalize_kpis
 
 def register_delivery_callbacks(app):
     """Registers all callbacks for the delivery dashboard."""
@@ -22,18 +25,23 @@ def register_delivery_callbacks(app):
             Output('delivery-pipeline-chart', 'figure'),
             Output('driver-leaderboard-chart', 'figure'),
             Output('vehicle-efficiency-chart', 'figure'),
-            Output('avg-time-by-city-chart', 'figure')
+            Output('avg-time-by-city-chart', 'figure'),
+            Output('delivery-recommendations-list', 'children')
         ],
-        Input('delivery-apply-btn', 'n_clicks'),
+    Input('delivery-apply-btn', 'n_clicks'),
+        Input('delivery-refresh-recs-btn', 'n_clicks'),
+    Input('delivery-thresholds-saved-signal', 'data'),
         [
             State('driver-filter', 'value'),
             State('vehicle-type-filter', 'value'),
             State('delivery-date-picker', 'start_date'),
             State('delivery-date-picker', 'end_date'),
-            State('delivery-region-filter', 'value')
+        State('delivery-region-filter', 'value'),
+        State('delivery-rec-severity-filter', 'value')
         ]
     )
-    def update_delivery_dashboard(n, sd, sv, start_d, end_d, sr):
+    def update_delivery_dashboard(n, refresh_click, saved_signal, sd, sv, start_d, end_d, sr, severity_filter):
+        _ = (refresh_click, saved_signal)
         analytics = generate_delivery_analytics(sd, sv, start_d, end_d, sr)
         
         if analytics.get("error"):
@@ -69,13 +77,35 @@ def register_delivery_callbacks(app):
         else:
             kpi_list = list(analytics["kpis"].values())
 
+        # Lightweight tab insights
+        tab_insights = []
+        try:
+            if analytics.get('kpis'):
+                k = analytics['kpis']
+                if 'kpi_on_time' in k:
+                    tab_insights.append(f"On-time rate is {k['kpi_on_time'].children[0]}")
+        except Exception:
+            pass
+
+        # Normalize KPIs using shared helper
+        kpis_src = analytics.get('kpis', {}) or {}
+        normalized = normalize_kpis(kpis_src)
+        cross_context = {'kpis': normalized}
+        rec_objs = generate_contextual_recommendations('delivery', tab_insights, cross_context)
+        if severity_filter and str(severity_filter).lower() != 'all':
+            whitelist = [str(severity_filter).lower()]
+        else:
+            whitelist = None
+        rec_component = render_recommendations(rec_objs, accordion_id='delivery-recs-accordion', severity_whitelist=whitelist)
+
         return (
             kpi_list +
             [
                 figs['pipeline_fig'],
                 figs['driver_leaderboard_fig'],
                 figs['vehicle_efficiency_fig'],
-                figs['time_by_city_fig']
+                figs['time_by_city_fig'],
+                rec_component
             ]
         )
 

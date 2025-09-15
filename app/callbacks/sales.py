@@ -10,6 +10,9 @@ from app.reporting import generate_pdf_report
 from etl.transforms import DATA
 import pandas as pd
 from app.utils.ui_helpers import create_multi_filter_options
+from app.analysis.recommendation_engine import generate_contextual_recommendations
+from app.analysis.ui_helpers import render_recommendations
+from app.analysis.kpi_utils import normalize_kpis
 
 # Server-side typeahead limit for products
 TOP_PRODUCT_OPTIONS = 200
@@ -33,9 +36,12 @@ def register_sales_callbacks(app):
             Output('top-products-chart', 'figure'),
             Output('sales-by-channel-chart', 'figure'),
             Output('sales-by-city-chart', 'figure'),
-            Output('sales-by-branch-chart', 'figure')
-        ],
-        Input('sales-apply-btn', 'n_clicks'),
+            Output('sales-by-branch-chart', 'figure'),
+            Output('sales-recommendations-list', 'children')
+    ],
+    Input('sales-apply-btn', 'n_clicks'),
+    Input('sales-refresh-recs-btn', 'n_clicks'),
+    Input('sales-thresholds-saved-signal', 'data'),
         [
             State('channel-filter-dropdown', 'value'),
             State('sales-date-picker', 'start_date'),
@@ -45,9 +51,11 @@ def register_sales_callbacks(app):
             State('sales-category-filter', 'value'),
             State('sales-product-filter', 'value'),
             State('sales-branch-filter', 'value')
+        , State('sales-rec-severity-filter', 'value')
         ]
     )
-    def update_sales_dashboard(n, sc, sd, ed, ta, sr, sca, product_filter, branch_filter):
+    def update_sales_dashboard(n, refresh_click, saved_signal, sc, sd, ed, ta, sr, sca, product_filter, branch_filter, severity_filter):
+        _ = (refresh_click, saved_signal)
         # product_filter and branch_filter are passed from the layout; ensure they have sensible defaults
         product_filter = product_filter or ['All']
         branch_filter = branch_filter or ['All']
@@ -108,6 +116,39 @@ def register_sales_callbacks(app):
             # ensure exactly 6 KPI bodies
             kpi_list = kpi_vals[:6] if len(kpi_vals) >= 6 else kpi_vals + [create_kpi_body("N/A", "-")] * (6 - len(kpi_vals))
 
+        # Build tab-level insights (lightweight, factual strings)
+        tab_insights: list[str] = []
+        try:
+            # Example insights derived from analytics dict
+            if analytics.get('kpis'):
+                k = analytics['kpis']
+                # Access some common KPI children safely
+                if 'kpi_margin' in k:
+                    tab_insights.append(f"Gross margin is {k['kpi_margin'].children[0]}")
+                if 'kpi_roas' in k:
+                    tab_insights.append(f"ROAS is {k['kpi_roas'].children[0]}")
+        except Exception:
+            pass
+
+        # Pass deterministic KPI objects to the engine for richer rules
+        try:
+            from etl import transforms
+            etl_kpis = transforms.DATA.get('kpis', {}) or {}
+        except Exception:
+            etl_kpis = {}
+
+        # Normalize KPIs and build cross_context
+        kpis_src = etl_kpis or analytics.get('kpis', {}) or {}
+        normalized_kpis = normalize_kpis(kpis_src)
+        cross_context = {'kpis': normalized_kpis}
+
+        rec_objs = generate_contextual_recommendations('sales', tab_insights, cross_context)
+        if severity_filter and str(severity_filter).lower() != 'all':
+            whitelist = [str(severity_filter).lower()]
+        else:
+            whitelist = None
+        rec_component = render_recommendations(rec_objs, accordion_id='sales-recs-accordion', severity_whitelist=whitelist)
+
         return (
             kpi_list +
             [
@@ -119,7 +160,8 @@ def register_sales_callbacks(app):
                 figs['top_prod_fig'],
                 figs['sales_by_channel_fig'],
                 figs['sales_by_city_fig'],
-                figs['sales_by_branch_fig']
+                figs['sales_by_branch_fig'],
+                rec_component
             ]
         )
 

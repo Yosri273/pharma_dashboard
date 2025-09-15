@@ -11,6 +11,10 @@ from etl.transforms import DATA
 from app.utils.analytics_helpers import generate_customer_analytics
 from app.utils import create_placeholder_figure, create_kpi_body
 from app.reporting import generate_pdf_report
+from app.analysis.recommendation_engine import generate_contextual_recommendations
+from dash import html
+from app.analysis.ui_helpers import render_recommendations
+from app.analysis.kpi_utils import normalize_kpis
 
 def register_customer_callbacks(app):
     """Registers all callbacks for the customer dashboard."""
@@ -26,18 +30,23 @@ def register_customer_callbacks(app):
             Output('customer-status-dist-chart', 'figure'),
             Output('rfm-bubble-chart', 'figure'),
             Output('customer-data-table', 'data'),
-            Output('customer-data-table', 'columns')
+            Output('customer-data-table', 'columns'),
+            Output('customer-recommendations-list', 'children')
         ],
-        Input('customer-apply-btn', 'n_clicks'),
+    Input('customer-apply-btn', 'n_clicks'),
+        Input('customer-refresh-recs-btn', 'n_clicks'),
+    Input('customer-thresholds-saved-signal', 'data'),
         [
             State('customer-list-selector', 'value'),
             State('customer-date-picker', 'start_date'),
             State('customer-date-picker', 'end_date'),
             State('customer-region-filter', 'value'),
-            State('customer-segment-filter', 'value')
+        State('customer-segment-filter', 'value'),
+        State('customer-rec-severity-filter', 'value')
         ]
     )
-    def update_customer_dashboard(n, sl, sd, ed, sr, ss):
+    def update_customer_dashboard(n, refresh_click, saved_signal, sl, sd, ed, sr, ss, severity_filter):
+        _ = (refresh_click, saved_signal)
         analytics = generate_customer_analytics(sl, sd, ed, sr, ss)
         if analytics["is_empty"]:
             ph = create_placeholder_figure("No data")
@@ -74,11 +83,34 @@ def register_customer_callbacks(app):
             kpi_active = kpis['kpi_active']
             kpi_dormant = kpis['kpi_dormant']
 
+        # Build tab insights
+        tab_insights = []
+        try:
+            if analytics.get('kpis'):
+                k = analytics['kpis']
+                if 'kpi_retention' in k:
+                    tab_insights.append(f"Retention is {k['kpi_retention'].children[0]}")
+        except Exception:
+            pass
+
+        # Normalize KPI dict for recommendation engine
+        kpis_src = analytics.get('kpis', {}) or {}
+        normalized = normalize_kpis(kpis_src)
+
+        cross_context = {'kpis': normalized}
+        rec_objs = generate_contextual_recommendations('customer', tab_insights, cross_context)
+        if severity_filter and str(severity_filter).lower() != 'all':
+            whitelist = [str(severity_filter).lower()]
+        else:
+            whitelist = None
+        rec_component = render_recommendations(rec_objs, accordion_id='customer-recs-accordion', severity_whitelist=whitelist)
+
         return [
             kpi_total, kpi_active, kpi_retention, kpi_repeat,
             kpi_dormant, kpis['kpi_churn'],
             analytics['figures']['status_dist_fig'], analytics['figures']['rfm_bubble_fig'],
-            data, columns
+            data, columns,
+            rec_component
         ]
 
     @app.callback(

@@ -6,7 +6,7 @@
 # MERGED: Added APScheduler from the new version to run the alerting monitor.
 # -----------------------------------------------------------------------------
 
-from app import app, server  # Import the app and server instances from our app package (app/__init__.py)
+from app.bootstrap import app, server  # Use explicit bootstrap to avoid import-time side effects
 from apscheduler.schedulers.background import BackgroundScheduler
 from alerting.monitor import run_monitor_cycle # NEW: Import the alert monitor
 

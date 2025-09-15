@@ -1,7 +1,7 @@
 from typing import Dict, Any
 from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, create_engine, Text
 from sqlalchemy.sql import select
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from services.db import get_engine
 from config.settings import MODEL_STORE_PATH
@@ -33,7 +33,7 @@ def register_model(model_name: str, artifact_path: str, metrics: Dict[str, Any],
     ins = registry.insert().values(
         model_name=model_name,
         artifact_path=artifact_path,
-        trained_at=datetime.utcnow(),
+    trained_at=datetime.now(timezone.utc),
         metrics=json.dumps(metrics or {}),
         metadata_json=json.dumps(metadata or {})
     )
@@ -64,7 +64,7 @@ def register_job(job_id: str, status: str, details: Dict[str, Any] = None):
             'job_id': job_id,
             'status': status,
             'details': json.dumps(details or {}),
-            'updated_at': datetime.utcnow()
+            'updated_at': datetime.now(timezone.utc)
         }
         if exists:
             upd = job_runs.update().where(job_runs.c.job_id == job_id).values(**payload)

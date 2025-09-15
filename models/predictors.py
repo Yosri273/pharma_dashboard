@@ -129,7 +129,10 @@ class ChurnPredictor:
         self.pipeline = Pipeline(steps=[('preprocessor', self.preprocessor),
                                         ('classifier', self.model)])
         self.feature_names = None
+        # Best-effort SHAP artifacts
         self.shap_explainer = None
+        # Persisted mean |SHAP| summary for stable UI plots without recomputation
+        self.shap_summary_ = None
 
 
     def fit(self, features_df: pd.DataFrame):
@@ -261,7 +264,7 @@ class ChurnPredictor:
             logging.getLogger(__name__).warning(f"Could not extract OHE feature names reliably: {e}")
             self.feature_names = self.numeric_features + self.categorical_features
 
-        # Create SHAP explainer for key drivers (best-effort)
+        # Create SHAP explainer and a compact summary for key drivers (best-effort)
         try:
             # prefer the underlying xgboost booster where possible
             clf_for_shap = None
@@ -274,6 +277,44 @@ class ChurnPredictor:
 
             X_train_transformed = self.preprocessor.transform(X_train)
             self.shap_explainer = shap.TreeExplainer(clf_for_shap, data=X_train_transformed)
+
+            # Compute mean |SHAP| summary on a limited background sample to bound size
+            try:
+                # Sample up to 2000 rows to keep artifact smaller
+                import numpy as _np
+                bg = X_train_transformed
+                try:
+                    if hasattr(bg, 'toarray'):
+                        # ColumnTransformer may yield sparse matrices
+                        bg = bg.toarray()
+                except Exception:
+                    pass
+                if getattr(bg, 'shape', (0,))[0] > 2000:
+                    idx = _np.random.RandomState(42).choice(bg.shape[0], size=2000, replace=False)
+                    bg_sample = bg[idx]
+                else:
+                    bg_sample = bg
+
+                # SHAP API differences across versions: prefer call() then fallback to .shap_values
+                try:
+                    exp = self.shap_explainer(bg_sample)
+                    shap_vals = getattr(exp, 'values', exp)
+                except Exception:
+                    shap_vals = self.shap_explainer.shap_values(bg_sample)
+
+                # Binary models sometimes return a list [neg_class, pos_class]
+                if isinstance(shap_vals, list) and len(shap_vals) > 1:
+                    shap_vals = shap_vals[1]
+
+                feature_names = self.feature_names or [f'f{i}' for i in range(shap_vals.shape[1])]
+                mean_abs = _np.abs(shap_vals).mean(axis=0)
+                self.shap_summary_ = pd.DataFrame({
+                    'Feature': feature_names,
+                    'FeatureImportance': mean_abs
+                }).sort_values('FeatureImportance', ascending=False).reset_index(drop=True)
+            except Exception:
+                # If summary computation fails, keep explainer only
+                logging.getLogger(__name__).warning('Failed to compute SHAP summary; will rely on explainer only', exc_info=True)
         except Exception:
             logging.getLogger(__name__).exception('Failed to create SHAP explainer')
 
@@ -344,6 +385,10 @@ class ChurnPredictor:
         """
         Returns a DataFrame of global SHAP values for the Feature Importance plot.
         """
+        # First, prefer a precomputed summary if available
+        if getattr(self, 'shap_summary_', None) is not None and not getattr(self.shap_summary_, 'empty', True):
+            return self.shap_summary_.copy()
+
         if self.shap_explainer is None:
             raise RuntimeError("SHAP Explainer not available. Run fit() first.")
 
@@ -351,11 +396,26 @@ class ChurnPredictor:
         try:
             shap_data = getattr(self.shap_explainer, 'data', None)
             shap_values = None
-            # shap.Kernel or Tree explainers may expose `values` or `values_for_class` depending on model
-            if hasattr(self.shap_explainer, 'values_for_class'):
-                shap_values = self.shap_explainer.values_for_class(1)
-            elif hasattr(self.shap_explainer, 'values'):
-                shap_values = self.shap_explainer.values
+            # Try computing on stored background data if present; otherwise attempt direct attributes
+            try:
+                if shap_data is not None:
+                    try:
+                        if hasattr(shap_data, 'toarray'):
+                            shap_bg = shap_data.toarray()
+                        else:
+                            shap_bg = shap_data
+                    except Exception:
+                        shap_bg = shap_data
+                    exp = self.shap_explainer(shap_bg)
+                    shap_values = getattr(exp, 'values', exp)
+            except Exception:
+                pass
+            if shap_values is None:
+                # shap.Kernel or Tree explainers may expose `values` or `values_for_class` depending on model
+                if hasattr(self.shap_explainer, 'values_for_class'):
+                    shap_values = self.shap_explainer.values_for_class(1)
+                elif hasattr(self.shap_explainer, 'values'):
+                    shap_values = self.shap_explainer.values
 
             if shap_values is None:
                 raise RuntimeError('Unable to extract shap values from explainer')

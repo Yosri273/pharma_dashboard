@@ -38,7 +38,11 @@ def get_daily_sales_timeseries(sales_df: pd.DataFrame, category: str = 'all', ch
 
     # Accept both normalized lower_snake and legacy names via _ensure_col
     _ensure_col(df, ['timestamp', 'time', 'date'], 'timestamp')
-    _ensure_col(df, ['grossvalue', 'gross_value'], 'grossvalue')
+    # Accept either grossvalue or netsale as the revenue column
+    if 'grossvalue' not in df.columns and 'netsale' in df.columns:
+        df.rename(columns={'netsale': 'grossvalue'}, inplace=True)
+    else:
+        _ensure_col(df, ['grossvalue', 'gross_value'], 'grossvalue')
     _ensure_col(df, ['category'], 'category')
     _ensure_col(df, ['channel'], 'channel')
 

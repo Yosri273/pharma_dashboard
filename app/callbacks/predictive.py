@@ -527,10 +527,20 @@ def register_predictive_callbacks(app):
                     logger.debug('render_churn_tab_content: predictions_df was None and on-the-fly prediction failed')
                     return dbc.Alert(html.P("Model artifacts exist but failed to produce predictions. Consider retraining."), color="danger")
 
+            # Ensure LTV column exists with consistent casing to avoid KeyErrors downstream
+            if 'Estimated_LTV' not in predictions_df.columns and 'estimated_ltv' in predictions_df.columns:
+                predictions_df = predictions_df.rename(columns={'estimated_ltv': 'Estimated_LTV'})
+            if 'Estimated_LTV' not in predictions_df.columns:
+                predictions_df['Estimated_LTV'] = pd.NA
+
             likely_churn_mask = predictions_df['ChurnProbability'] > 0.5
             churn_rate_pct = (predictions_df[likely_churn_mask]['customerid'].nunique() / predictions_df['customerid'].nunique()) * 100 if predictions_df['customerid'].nunique() > 0 else 0
             at_risk_revenue = predictions_df[likely_churn_mask]['Monetary'].sum()
-            active_ltv = predictions_df[~likely_churn_mask]['Estimated_LTV'].mean()
+            # Compute active LTV safely when column may be missing entirely
+            try:
+                active_ltv = predictions_df[~likely_churn_mask]['Estimated_LTV'].mean()
+            except Exception:
+                active_ltv = None
 
             # Prefer canonical ETL KPIs if present
             try:
@@ -612,13 +622,43 @@ def register_predictive_callbacks(app):
                     data=table_data,
                     page_size=10,
                     sort_action='native',
-                    style_table={'overflowX': 'auto', 'height': '320px'},
-                    style_header={'backgroundColor': 'rgba(255,255,255,0.03)', 'color': '#cfe8ff', 'fontWeight': '600'},
-                    style_cell={'backgroundColor': 'transparent', 'color': '#e6eefc', 'textAlign': 'left', 'padding': '0.35rem 0.5rem'},
+                    style_table={'overflowX': 'auto', 'height': '320px', 'borderRadius': '8px'},
+                    style_header={'backgroundColor': 'rgba(255,255,255,0.06)', 'color': '#e8f0ff', 'fontWeight': '700', 'border': 'none'},
+                    style_cell={'backgroundColor': 'rgba(255,255,255,0.02)', 'color': '#f5f8ff', 'textAlign': 'left', 'padding': '0.4rem 0.55rem', 'border': 'none'},
                     style_data={'backgroundColor': 'rgba(255,255,255,0.02)'},
                 )])
 
-            content_children.extend([kpi_row_top, kpi_row_bottom, html.Hr(), drivers_block, html.Hr(), distribution_block, html.Hr(), at_risk_block])
+            # Actionable Customer Lists (Predictive tab integration, unique IDs)
+            actionable_lists_block = dbc.Card(
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col(html.H4("Actionable Customer Lists"), md=6),
+                        dbc.Col(
+                            dcc.RadioItems(
+                                id='pred-customer-list-selector',
+                                options=[
+                                    {'label': 'Top-Value Customers', 'value': 'top_value'},
+                                    {'label': 'High Churn Risk', 'value': 'churn_risk'},
+                                    {'label': 'New Customers', 'value': 'new'}
+                                ],
+                                value='top_value',
+                                inline=True,
+                                labelClassName="me-3"
+                            ),
+                            md=6
+                        )
+                    ], align="center"),
+                    dbc.Row([
+                        create_datatable_card(table_id='pred-customer-data-table', title="", width=10),
+                        dbc.Col(
+                            dbc.Button(["Export ", html.I(className="bi bi-download")], id="pred-export-csv-button", color="primary", className="mt-3 w-100"),
+                            lg=2, md=12, sm=12
+                        )
+                    ])
+                ])
+            )
+
+            content_children.extend([kpi_row_top, kpi_row_bottom, html.Hr(), drivers_block, html.Hr(), distribution_block, html.Hr(), at_risk_block, html.Hr(), actionable_lists_block])
             if readiness_div is not None:
                 content_children.insert(0, readiness_div)
             return html.Div(content_children, className="predictive-churn-content")
@@ -670,123 +710,67 @@ def register_predictive_callbacks(app):
             return (current_signal or 0)
 
 
-    # --- Manual training click handler: opens confirmation modal if warnings exist, or enqueues directly ---
+    # --- Combined churn modal handler: open/confirm/cancel in one callback ---
     @app.callback(
         Output('confirm-train-modal', 'is_open'),
-        [Input('run-manual-churn-train-btn', 'n_clicks')],
+        [
+            Input('run-manual-churn-train-btn', 'n_clicks'),
+            Input('train-churn-btn', 'n_clicks'),
+            Input('confirm-train-yes', 'n_clicks'),
+            Input('confirm-train-no', 'n_clicks')
+        ],
         [State('dataset-readiness-store', 'data')],
         prevent_initial_call=True
     )
-    def handle_manual_train_click(n_clicks, readiness):
-        if not n_clicks:
-            raise PreventUpdate
-
-        warnings = (readiness or {}).get('warnings') if readiness is not None else None
-        if warnings:
-            # Open modal to ask for confirmation; do not enqueue yet
-            return True
-
-        # No warnings — enqueue immediately
-        def _on_complete(job_id, result):
-            try:
-                DATA['model_training_in_progress'] = False
-            except Exception:
-                pass
-            try:
-                import os
-                trigger_path = os.path.join(os.path.dirname(__file__), '..', '..', 'model_store', f'{job_id}_complete.marker')
-                with open(trigger_path, 'w') as fh:
-                    fh.write('done')
-            except Exception:
-                logger.exception('Failed to write job complete marker')
-
-        try:
-            DATA['model_training_in_progress'] = True
-        except Exception:
-            pass
-
-    job_id = _enqueue_job_with_marker(run_churn_training_job)
-    logger.info(f'Enqueued churn training job: {job_id}')
-    return False
-
-
-    # --- Confirmation modal handler: if user confirms, enqueue the job; if cancels, close modal ---
-    @app.callback(
-        Output('confirm-train-modal', 'is_open'),
-        [Input('confirm-train-yes', 'n_clicks'), Input('confirm-train-no', 'n_clicks')],
-        prevent_initial_call=True
-    )
-    def handle_confirm_modal(yes_clicks, no_clicks):
+    def handle_churn_modal(run_clicks, train_clicks, yes_clicks, no_clicks, readiness):
         ctx = dash.callback_context
         if not ctx.triggered:
             raise PreventUpdate
         triggered = ctx.triggered[0]['prop_id'].split('.')[0]
 
+        # Cancel -> close modal
         if triggered == 'confirm-train-no':
             return False
 
-        # Confirm -> enqueue training
-        def _on_complete(job_id, result):
+        # Open request from manual train button or the new visible button
+        if triggered in ('run-manual-churn-train-btn', 'train-churn-btn'):
+            warnings = (readiness or {}).get('warnings') if readiness is not None else None
+            if warnings:
+                return True  # open modal
+            # No warnings — enqueue immediately
             try:
-                DATA['model_training_in_progress'] = False
+                DATA['model_training_in_progress'] = True
             except Exception:
                 pass
+            job_id = _enqueue_job_with_marker(run_churn_training_job)
+            logger.info(f'Enqueued churn training job: {job_id}')
+            return False
+
+        # Confirm -> enqueue and close modal
+        if triggered == 'confirm-train-yes':
             try:
-                import os
-                trigger_path = os.path.join(os.path.dirname(__file__), '..', '..', 'model_store', f'{job_id}_complete.marker')
-                with open(trigger_path, 'w') as fh:
-                    fh.write('done')
+                DATA['model_training_in_progress'] = True
             except Exception:
-                logger.exception('Failed to write job complete marker')
+                pass
+            job_id = _enqueue_job_with_marker(run_churn_training_job)
+            logger.info(f'Enqueued churn training job (confirmed): {job_id}')
+            return False
 
-        try:
-            DATA['model_training_in_progress'] = True
-        except Exception:
-            pass
-
-    job_id = _enqueue_job_with_marker(run_churn_training_job)
-    logger.info(f'Enqueued churn training job (confirmed): {job_id}')
-    return False
+        raise PreventUpdate
 
 
-    # --- Forecast training modal open handler: similar to churn, ask for confirm if warnings present ---
+    # --- Combined forecast modal handler: open/confirm/cancel in one callback ---
     @app.callback(
         Output('confirm-forecast-modal', 'is_open'),
-        [Input('train-forecast-btn', 'n_clicks')],
+        [
+            Input('train-forecast-btn', 'n_clicks'),
+            Input('confirm-forecast-yes', 'n_clicks'),
+            Input('confirm-forecast-no', 'n_clicks')
+        ],
         [State('dataset-readiness-store', 'data')],
         prevent_initial_call=True
     )
-    def handle_train_forecast_click_open(n_clicks, readiness):
-        if not n_clicks:
-            raise PreventUpdate
-
-        warnings = (readiness or {}).get('warnings') if readiness is not None else None
-        if warnings:
-            return True
-
-        # No warnings — enqueue immediately
-        try:
-            from etl.schedules import run_forecast_training_pipeline
-        except Exception:
-            logger.exception('Failed to import forecast training pipeline')
-            raise PreventUpdate
-
-        try:
-            DATA['model_training_in_progress'] = True
-        except Exception:
-            pass
-
-        job_id = _enqueue_job_with_marker(run_forecast_training_pipeline)
-        logger.info(f'Enqueued forecast training job: {job_id}')
-        return False
-
-
-    @app.callback(
-        Output('confirm-forecast-modal', 'is_open'),
-        [Input('confirm-forecast-yes', 'n_clicks'), Input('confirm-forecast-no', 'n_clicks')],
-        prevent_initial_call=True
-    )
-    def handle_confirm_forecast_modal(yes_clicks, no_clicks):
+    def handle_forecast_modal(train_clicks, yes_clicks, no_clicks, readiness):
         ctx = dash.callback_context
         if not ctx.triggered:
             raise PreventUpdate
@@ -795,21 +779,34 @@ def register_predictive_callbacks(app):
         if triggered == 'confirm-forecast-no':
             return False
 
-        # Confirm -> enqueue forecast training
         try:
             from etl.schedules import run_forecast_training_pipeline
         except Exception:
             logger.exception('Failed to import forecast training pipeline')
             raise PreventUpdate
 
-        try:
-            DATA['model_training_in_progress'] = True
-        except Exception:
-            pass
+        if triggered == 'train-forecast-btn':
+            warnings = (readiness or {}).get('warnings') if readiness is not None else None
+            if warnings:
+                return True
+            try:
+                DATA['model_training_in_progress'] = True
+            except Exception:
+                pass
+            job_id = _enqueue_job_with_marker(run_forecast_training_pipeline)
+            logger.info(f'Enqueued forecast training job: {job_id}')
+            return False
 
-        job_id = _enqueue_job_with_marker(run_forecast_training_pipeline)
-        logger.info(f'Enqueued forecast training job (confirmed): {job_id}')
-        return False
+        if triggered == 'confirm-forecast-yes':
+            try:
+                DATA['model_training_in_progress'] = True
+            except Exception:
+                pass
+            job_id = _enqueue_job_with_marker(run_forecast_training_pipeline)
+            logger.info(f'Enqueued forecast training job (confirmed): {job_id}')
+            return False
+
+        raise PreventUpdate
 
 
     # --- Model registry & job-list callbacks ---
@@ -973,6 +970,91 @@ def register_predictive_callbacks(app):
         except Exception:
             logger.exception('Failed to populate model selector')
             return []
+
+    # --- Predictive Actionable Customer Lists: populate table ---
+    @app.callback(
+        [
+            Output('pred-customer-data-table', 'data'),
+            Output('pred-customer-data-table', 'columns')
+        ],
+        [
+            Input('pred-customer-list-selector', 'value'),
+            Input('model-training-signal-store', 'data')
+        ]
+    )
+    def update_pred_actionable_lists(selected_list, _signal):
+        try:
+            predictions_df = DATA.get('predictions_df', None)
+            if predictions_df is not None and not getattr(predictions_df, 'empty', True):
+                preds = predictions_df.copy()
+                # normalize names
+                lmap = {c.lower(): c for c in preds.columns}
+                if 'churn_probability' in lmap and 'ChurnProbability' not in preds.columns:
+                    preds = preds.rename(columns={lmap['churn_probability']: 'ChurnProbability'})
+                if 'estimated_ltv' in lmap and 'Estimated_LTV' not in preds.columns:
+                    preds = preds.rename(columns={lmap['estimated_ltv']: 'Estimated_LTV'})
+            else:
+                preds = None
+
+            customer_analysis_df = DATA.get('customer_analysis_df', pd.DataFrame())
+
+            if selected_list == 'top_value':
+                if not customer_analysis_df.empty:
+                    df = customer_analysis_df.copy()
+                    sort_col = 'monetary' if 'monetary' in df.columns else ('Monetary' if 'Monetary' in df.columns else None)
+                    cols = [c for c in ['customerid', 'city', 'segment', 'monetary', 'Monetary', 'frequency', 'recency'] if c in df.columns]
+                    df = df[cols]
+                    if sort_col:
+                        df = df.sort_values(sort_col, ascending=False)
+                    df = df.head(50)
+                elif preds is not None and not preds.empty and 'Monetary' in preds.columns:
+                    cols = [c for c in ['customerid', 'City', 'Segment', 'Monetary', 'Recency'] if c in preds.columns]
+                    df = preds[cols].sort_values('Monetary', ascending=False).head(50)
+                else:
+                    df = pd.DataFrame()
+            elif selected_list == 'churn_risk':
+                if preds is not None and not preds.empty and 'ChurnProbability' in preds.columns:
+                    df = preds[preds['ChurnProbability'] > 0.5]
+                    cols = [c for c in ['customerid', 'City', 'Segment', 'Monetary', 'Recency', 'ChurnProbability'] if c in df.columns]
+                    df = df[cols].sort_values('ChurnProbability', ascending=False).head(50)
+                elif not customer_analysis_df.empty and 'status' in customer_analysis_df.columns:
+                    df = customer_analysis_df[customer_analysis_df['status'] == 'Churn Risk']
+                    cols = [c for c in ['customerid', 'city', 'segment', 'monetary', 'frequency', 'recency', 'last_purchase_date'] if c in df.columns]
+                    df = df[cols].head(50)
+                else:
+                    df = pd.DataFrame()
+            elif selected_list == 'new':
+                if not customer_analysis_df.empty and 'status' in customer_analysis_df.columns:
+                    df = customer_analysis_df[customer_analysis_df['status'] == 'New']
+                    cols = [c for c in ['customerid', 'city', 'segment', 'monetary', 'frequency', 'recency', 'joindate'] if c in df.columns]
+                    df = df[cols].head(50)
+                else:
+                    df = pd.DataFrame()
+            else:
+                df = pd.DataFrame()
+
+            if df is None or df.empty:
+                return [], []
+            return df.to_dict('records'), [{'name': c, 'id': c} for c in df.columns]
+        except Exception:
+            logger.exception('Failed to update predictive actionable customer lists')
+            return [], []
+
+    # --- Predictive Actionable Customer Lists: Export ---
+    @app.callback(
+        Output('pred-download-dataframe-csv', 'data'),
+        Input('pred-export-csv-button', 'n_clicks'),
+        State('pred-customer-list-selector', 'value'),
+        prevent_initial_call=True
+    )
+    def export_pred_actionable_lists(n, selected_list):
+        if not n:
+            raise PreventUpdate
+        data, cols = update_pred_actionable_lists(selected_list, DATA.get('model_training_signal', 0))
+        if not data:
+            raise PreventUpdate
+        df = pd.DataFrame(data)
+        return dcc.send_data_frame(df.to_csv, f"{selected_list}_customers_{datetime.now().strftime('%Y-%m-%d')}.csv", index=False)
 
 
     # --- Forecast training enqueue: allow users to trigger the Demand Forecaster training ---

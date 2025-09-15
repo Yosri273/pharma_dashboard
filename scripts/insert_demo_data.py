@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import sys
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 import argparse
 
@@ -28,7 +28,7 @@ CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Mecca', 'Medina']
 
 def generate_web_mobile_analytics(n_days=60, sessions_per_day=200):
     rows = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for d in range(n_days):
         date = (now - timedelta(days=d)).date()
         for s in range(sessions_per_day):
@@ -76,7 +76,7 @@ def generate_ad_platform_data(num_rows=200):
 
 def generate_sales(num_orders=1000):
     rows = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for i in range(num_orders):
         order_id = f"demo_ord_{i}"
         ts = now - timedelta(days=RND.randint(0,60), minutes=RND.randint(0,1440))
@@ -113,7 +113,7 @@ def generate_sales(num_orders=1000):
 
 def generate_customers(num_customers=500):
     rows = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for i in range(num_customers):
         cid = f"demo_c_{i+1}"
         join = (now - timedelta(days=RND.randint(30,1000))).date().isoformat()
@@ -137,7 +137,7 @@ def generate_deliveries(sales_df):
 
 def generate_funnel(n_weeks=10):
     rows = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for w in range(n_weeks):
         week = (now - timedelta(weeks=w)).strftime('%Y-%W')
         visits = RND.randint(2000,5000)
@@ -150,7 +150,7 @@ def generate_funnel(n_weeks=10):
 
 def generate_support_tickets(num=200):
     rows = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     issues = ['Late Delivery', 'Damaged Item', 'Payment Issue', 'Wrong Item', 'App Bug']
     for i in range(num):
         ticket = f'demo_t_{i}'
@@ -166,7 +166,7 @@ def generate_support_tickets(num=200):
 
 def generate_competitor_data(num=50):
     rows = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for i in range(num):
         rows.append({'Date': (now - timedelta(days=RND.randint(0,60))).date().isoformat(), 'Competitor': RND.choice(['RivalCo','OtherCo','CopyCat']), 'ProductID': f'P-{RND.randint(1,50)}', 'ProductName': f'Demo Product {RND.randint(1,50)}', 'Price': round(RND.uniform(5,400),2), 'OnPromotion': RND.choice([True, False])})
     return pd.DataFrame(rows)

@@ -1,0 +1,6 @@
+{
+  "roas_warning": 1.5,
+  "roas_critical": 1,
+  "cpa_warning": 200,
+  "low_spend_threshold": 5000
+}

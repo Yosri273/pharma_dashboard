@@ -10,7 +10,7 @@ import os
 import json
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timezone
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 WEB = os.path.join(BASE, 'web_analytics.csv')
@@ -63,7 +63,7 @@ def safe_mean(series):
         return 0.0
 
 report = {}
-report['generated_at'] = datetime.utcnow().isoformat()
+report['generated_at'] = datetime.now(timezone.utc).isoformat()
 report['total_sessions'] = combined.shape[0]
 report['unique_users'] = int(combined[user_col].nunique()) if user_col and user_col in combined.columns else 0
 report['bounce_rate'] = safe_mean(combined[bounce_col]) if bounce_col else 0.0
