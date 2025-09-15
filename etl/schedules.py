@@ -110,12 +110,15 @@ def run_churn_training_pipeline():
         logger.info("[ML JOB]: Generating predictions for all customers...")
         # Use the newly trained model to get predictions, including Estimated_LTV
         full_predictions_df = churn_model.predict_churn_probability(rfm_features)
-
-        # Select only the necessary columns for the database table
-        # This now includes the critical 'Estimated_LTV' column
+        # Standardize column names for persistence
+        preds_to_save = full_predictions_df.copy()
+        if 'ChurnProbability' in preds_to_save.columns and 'churn_probability' not in preds_to_save.columns:
+            preds_to_save['churn_probability'] = preds_to_save['ChurnProbability']
+        if 'Estimated_LTV' not in preds_to_save.columns and 'estimated_ltv' in preds_to_save.columns:
+            preds_to_save.rename(columns={'estimated_ltv': 'Estimated_LTV'}, inplace=True)
+        # Select only necessary columns
         cols_to_save = ['customerid', 'churn_probability', 'Estimated_LTV']
-        # Ensure all columns exist before trying to save
-        predictions_to_save = full_predictions_df[[col for col in cols_to_save if col in full_predictions_df.columns]]
+        predictions_to_save = preds_to_save[[col for col in cols_to_save if col in preds_to_save.columns]]
 
         logger.info(f"[ML JOB]: Saving {len(predictions_to_save)} predictions to 'customer_churn_predictions' table...")
         predictions_to_save.to_sql(

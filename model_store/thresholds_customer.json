@@ -1,0 +1,23 @@
+{
+  "conversion_rate_critical": 0.02,
+  "conversion_rate_warning": 0.05,
+  "gross_margin_critical": 0.1,
+  "gross_margin_warning": 0.2,
+  "aov_info": 20,
+  "aov_warning": 35,
+  "return_rate_critical": 0.15,
+  "return_rate_warning": 0.08,
+  "churn_warning": 0.05,
+  "repeat_rate_info": 0.25,
+  "on_time_delivery_warning": 0.9,
+  "avg_delivery_time_warning_days": 5.0,
+  "marketing_spend_high_critical": 20000,
+  "marketing_spend_high_warning": 10000,
+  "roas_critical": 1,
+  "roas_warning": 1.5,
+  "low_spend_scale_roas": 3.0,
+  "low_spend_threshold": 5000.0,
+  "cpa_warning": 200,
+  "clv_cac_critical": 1,
+  "clv_cac_warning": 1.5
+}

@@ -1,0 +1,313 @@
+/* Dark-first modern theme with colorful accents */
+:root{
+  --bg-900: #071127; /* main app background */
+  --bg-800: #0b1b2b; /* panels */
+  --card-bg: #071127;
+  --muted-300: #9aa8bf;
+  --muted-500: #6c7b8a;
+  --primary-500: #6f9cff; /* bright blue accent */
+  --success-500: #2fd18a;
+  --info-500: #4dd0e1;
+  --danger-500: #ff6b6b;
+  --warning-500: #ffd166;
+  --card-shadow: 0 10px 30px rgba(2,8,23,0.6);
+  --card-radius: 0.6rem;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background-color: var(--bg-900);
+  color: #e6eefc;
+}
+
+.navbar, .navbar .navbar-brand { font-weight: 600; }
+
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.03);
+  border-radius: var(--card-radius) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+
+.card .card-body { padding: 1rem !important; }
+
+.card-title { font-weight: 600; color: var(--muted-300); }
+
+/* Section headings and H4 must be bright for readability */
+h4, .h4 {
+  color: #e6eefc !important;
+  font-weight: 700;
+}
+
+/* Comprehensive tab section titles: larger, heavier, and with subtle accent */
+.comp-section-title {
+  color: #7b8fba !important; /* dark text for colored background */
+  font-weight: 800 !important;
+  font-size: 1.9rem !important;
+  letter-spacing: -0.3px !important;
+  margin: 0.9rem 0 1.0rem 0 !important; /* more space above and below */
+  display: inline-block !important;
+  padding: 0.45rem 1.0rem !important; /* larger pill padding */
+  border-radius: 0.6rem !important;
+  background: linear-gradient(90deg, rgba(111,156,255,0.12), rgba(77,208,225,0.08)) !important;
+  box-shadow: 0 6px 18px rgba(2,8,23,0.45) !important;
+}
+
+.comp-section-title .section-number {
+  display: inline-block;
+  background: var(--primary-500) !important;
+  color: #071127 !important;
+  padding: 0.08rem 0.55rem !important;
+  border-radius: 0.35rem !important;
+  margin-right: 0.65rem !important;
+  font-weight: 900 !important;
+}
+
+/* Icon color neutral (uses accent where relevant) */
+.bi { color: var(--primary-500); }
+
+/* Buttons */
+.btn-primary { background-color: var(--primary-500); border-color: transparent; color: #071127; font-weight: 600; }
+.btn-secondary { background-color: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.03); color: var(--muted-300); }
+
+/* Inputs, selects, datepickers — make text readable on dark backgrounds */
+input, .form-control, .Select-control, .Select__control, .Select, .Select-placeholder, .Select-value {
+  background: rgba(255,255,255,0.02) !important;
+  color: #e6eefc !important;
+  border: 1px solid rgba(255,255,255,0.04) !important;
+}
+
+/* Dropdown / select menu styling (react-select / Dash dcc.Dropdown and bootstrap dropdowns)
+   Ensure option lists are dark and option text is high-contrast and hover/selected states are visible */
+.Select-menu-outer, .Select-menu, .Select__menu, .Select-menu-outer--above, .Select-menu-outer--below {
+  background: var(--bg-800) !important;
+  color: #e6eefc !important;
+  border: 1px solid rgba(255,255,255,0.04) !important;
+  box-shadow: var(--card-shadow) !important;
+  z-index: 1050; /* ensure it sits above other UI elements */
+}
+.Select-option, .Select__option, .Select-menu-item, .Select-menuItem, .Select-option.is-focused, .VirtualizedSelectOption {
+  color: #e6eefc !important;
+  background: transparent !important;
+  padding: 0.45rem 0.75rem !important;
+}
+.Select-option.is-focused, .Select__option--is-focused, .Select-option:hover, .dropdown-item:hover {
+  background: rgba(255,255,255,0.03) !important;
+  color: #e6eefc !important;
+}
+.Select-option.is-selected, .Select__option--is-selected, .Select-option--is-selected {
+  background: rgba(111,156,255,0.12) !important; /* gentle primary tint */
+  color: #e6eefc !important;
+}
+
+/* Placeholder and selected value visibility */
+.Select-placeholder, .Select__placeholder, .Select-value, .Select__single-value {
+  color: rgba(230,238,252,0.8) !important;
+}
+
+/* Native select and option fallback styling for browsers where react-select isn't used */
+select, select option {
+  background: var(--bg-800) !important;
+  color: #e6eefc !important;
+}
+
+/* Bootstrap dropdowns */
+.dropdown-menu {
+  background: var(--bg-800) !important;
+  border: 1px solid rgba(255,255,255,0.04) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+.dropdown-item { color: #e6eefc !important; }
+.dropdown-item:hover, .dropdown-item:focus { background: rgba(255,255,255,0.03) !important; color: #e6eefc !important; }
+
+
+/* Nav tabs and active tab accent */
+.nav-tabs .nav-link { color: rgba(255,255,255,0.85); }
+.nav-tabs .nav-link.active { color: var(--primary-500); background: transparent; border-color: transparent; font-weight: 700; }
+
+/* Make card bodies slightly lighter to separate content from page background */
+.card { background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); }
+.card .card-body { color: #e6eefc; }
+
+/* Graph panel wrapper: give a slightly lighter inner rectangle for contrast */
+.graph-panel { background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 0.5rem; }
+
+/* Make KPI labels and values highly readable */
+.graph-panel { background: rgba(255,255,255,0.03); }
+.kpi-value { color: #ffffff; letter-spacing: -0.5px; font-size: 1.9rem; font-weight: 800; }
+.kpi-sub { color: var(--muted-300); }
+
+/* Stronger inner contrast for KPI cards specifically */
+.card.kpi-card { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.04); }
+
+/* Ensure inputs and datepicker labels are high-contrast */
+input, .form-control, .Select-control, .Select__control, .Select, .Select-placeholder, .Select-value, .DateInput_input {
+  background: rgba(255,255,255,0.02) !important;
+  color: #e6eefc !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+/* Colorful KPI card variants - vivid gradients */
+.kpi-card.primary { background: linear-gradient(90deg, #5b8cff 0%, #7fb3ff 100%); }
+.kpi-card.success { background: linear-gradient(90deg, #22c55e 0%, #6ee7b7 100%); }
+.kpi-card.info { background: linear-gradient(90deg, #00bcd4 0%, #67e8f9 100%); }
+.kpi-card.danger { background: linear-gradient(90deg, #ff6b6b 0%, #ff9a9a 100%); }
+.kpi-card.warning { background: linear-gradient(90deg, #ffd166 0%, #ffe69a 100%); color: #102027; }
+.kpi-card.secondary { background: linear-gradient(90deg, #6c757d 0%, #a9b0b6 100%); }
+.kpi-card.dark { background: linear-gradient(90deg, #2b2f3a 0%, #565a66 100%); }
+
+/* Ensure text inside colorful cards is white and legible */
+.kpi-card .kpi-value { color: #ffffff !important; }
+.kpi-card .card-title, .kpi-card h6 { color: rgba(255,255,255,0.95) !important; }
+
+/* Slight inset and contrast for icons on colorful cards */
+.kpi-card .bi { opacity: 0.98; }
+
+/* Buttons in top navbar (Refresh) should be visible */
+.navbar .btn { background: rgba(255,255,255,0.03); color: #e6eefc; border: 1px solid rgba(255,255,255,0.03); }
+
+/* KPI helpers: colored left accent and strong value */
+.kpi-value { font-size: 1.6rem; font-weight: 700; color: #ffffff; }
+.kpi-sub { font-size: 0.85rem; color: var(--muted-300); }
+
+/* DataTable tweaks for dark */
+.dash-table-container .dash-spreadsheet-inner table { border-collapse: collapse; color: #e6eefc; }
+.dash-table-container .dash-spreadsheet-inner thead th { background: transparent; color: var(--muted-300); }
+
+/* Stronger readability for all DataTable text, including Models & Jobs */
+.dash-table-container .dash-spreadsheet-inner td,
+.dash-table-container .dash-spreadsheet-inner th,
+.dash-table-container .dash-spreadsheet .dash-cell {
+  color: #f0f6ff !important;
+}
+
+/* Header contrast */
+.dash-table-container .dash-spreadsheet-inner thead th {
+  background: rgba(255,255,255,0.06) !important;
+  color: #e8f0ff !important;
+  font-weight: 700 !important;
+}
+
+/* Row hover and selected states */
+.dash-table-container .dash-spreadsheet .dash-cell.selected,
+.dash-table-container .dash-spreadsheet .dash-cell.focused {
+  background-color: rgba(111,156,255,0.22) !important;
+  color: #ffffff !important;
+}
+.dash-table-container .dash-spreadsheet-inner tr:hover td {
+  background: rgba(255,255,255,0.03) !important;
+}
+
+/* Pagination controls visibility */
+.dash-table-container .previous-next-container button,
+.dash-table-container .previous-next-container span,
+.dash-table-container .page-number {
+  color: #e6eefc !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+}
+.dash-table-container .previous-next-container button:disabled { opacity: 0.45; }
+
+/* Ensure JSON-like content in Metrics column is readable */
+#models-registry-table .dash-cell div,
+#jobs-status-table .dash-cell div {
+  color: #f0f6ff !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Job progress label readability */
+#job-progress-container, #job-progress-container * { color: #e6eefc !important; }
+
+/* Plotly graphs: transparent backgrounds but ensure text is light */
+.js-plotly-plot .plotly { background: transparent !important; border-radius: var(--card-radius); }
+.plotly .xtick, .plotly .ytick, .plotly .axis text { fill: #dbe9ff !important; }
+
+/* Ensure graph cards have dark inner white-space for readability */
+.card .card-body > .js-plotly-plot, .card .card-body > .plotly {
+  background: transparent !important;
+}
+
+/* Plotly default paper and plot backgrounds for dark theme */
+.plotly .main-svg, .plotly .plot, .plotly .cartesianlayer { background: transparent !important; }
+.plotly .axis line, .plotly .axis path { stroke: rgba(255,255,255,0.08) !important; }
+.plotly .legend text { fill: #dbe9ff !important; }
+
+/* Ensure graph axes and grid lines are subtle but visible on dark backgrounds */
+.plotly .gridlines .x, .plotly .gridlines .y, .plotly .ygrid, .plotly .xgrid { stroke: rgba(255,255,255,0.03) !important; }
+
+
+
+/* Small responsive tweaks */
+@media (max-width: 768px){
+  .card .card-body { padding: 0.75rem !important; }
+}
+
+/* Enhanced mobile adjustments */
+@media (max-width: 768px) {
+  /* Slightly smaller typography for tight mobile screens */
+  body { font-size: 14px; }
+  h4, .h4 { font-size: 1.25rem !important; }
+  /* Allow section title to grow full width and wrap to avoid overflow */
+  .comp-section-title { font-size: 1.2rem !important; padding: 0.35rem 0.6rem !important; display: block !important; width: 100% !important; box-sizing: border-box !important; white-space: normal !important; }
+
+  /* Stack KPI cards full-width on mobile for better legibility */
+  .kpi-card { width: 100% !important; display: block; margin-bottom: 0.6rem !important; min-width: 0 !important; }
+  .kpi-value { font-size: 1.4rem !important; }
+
+  /* Make nav controls and buttons larger for touch */
+  .navbar .btn { padding: 0.5rem 0.75rem; font-size: 0.95rem; }
+
+  /* Ensure dropdowns and selects are full width */
+  .Select, .Select-control, .Select__control, select, .form-control { width: 100% !important; }
+
+  /* Simplify graph margins and force plots to be responsive using width 100% */
+  .graph-panel { padding: 0.5rem !important; min-width: 0 !important; }
+  .js-plotly-plot, .plotly, .card .card-body > .js-plotly-plot, .card .card-body > .plotly { max-width: 100% !important; width: 100% !important; height: auto !important; min-width: 0 !important; }
+
+  /* Mobile-specific Plotly fixes: reduce xtick font and avoid CSS rotation (let Plotly reserve space); allow svg overflow so ticks aren't clipped */
+  .plotly { overflow: visible !important; }
+  .js-plotly-plot svg { overflow: visible !important; }
+  /* Disable CSS rotation which interferes with Plotly's internal margin calculations and ensure xticks are positioned below the plot */
+  .plotly .xtick text { font-size: 11px !important; transform: none !important; dominant-baseline: hanging !important; text-anchor: middle !important; }
+
+  /* Increase bottom padding for graph panels on mobile so axis labels have ample space below bars */
+  .graph-panel { padding-left: 0.9rem !important; padding-right: 0.6rem !important; padding-bottom: 3.6rem !important; }
+
+  /* Reduce side paddings in main container to use screen real-estate */
+  .container-fluid, .container { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+
+  /* Compact the comp-section-title spacing on mobile */
+  .comp-section-title { margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }
+
+  /* Ensure KPI small hint text remains readable but compact */
+  .kpi-card small, .kpi-card .text-muted { font-size: 0.7rem !important; }
+}
+
+/* Extra small screens - reduce even more */
+@media (max-width: 420px){
+  .comp-section-title { font-size: 1.05rem !important; }
+  .kpi-value { font-size: 1.2rem !important; }
+  .card .card-body { padding: 0.5rem !important; }
+}
+
+/* Welcome card specific styles: brighter, high-contrast, professional */
+.welcome-card { 
+  background: linear-gradient(180deg, rgba(111,156,255,0.06), rgba(77,208,225,0.03));
+  border: 1px solid rgba(111,156,255,0.12);
+  color: #ffffff;
+}
+.welcome-card .card-body { padding: 1.6rem !important; }
+.welcome-card h1 { color: #ffffff !important; font-size: 2.2rem; letter-spacing: -0.6px; }
+.welcome-card .lead { color: rgba(230,238,252,0.98) !important; font-size: 1.05rem; }
+.welcome-card .list-group-item { background: transparent; color: #ffffff !important; border: none; padding: 0.25rem 0.35rem; }
+.welcome-card .list-group-item b, .welcome-card .list-group-item strong { color: #fff !important; font-weight: 700; }
+.welcome-card .text-muted { color: rgba(255,255,255,0.9) !important; }
+.welcome-card .btn-primary { background-color: #2f7bff; border: none; color: #fff; box-shadow: 0 6px 18px rgba(47,123,255,0.18); }
+
+/* Slightly increase list item spacing for clarity */
+.welcome-card .list-group-item { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+
+/* Ensure rows with many KPI cards can wrap without causing horizontal scroll */
+.row > .col, .row > [class*="col-"] { min-width: 0; }
+.row.kpi-row, .kpi-row .col { display: flex; flex-wrap: wrap; }
+

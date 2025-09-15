@@ -1,0 +1,401 @@
+productid,productname,category,price,cost
+P0001,Panadol Extra Pack,Pain Relief,12.87,5.16
+P0002,Panadol Extra Bottle,Pain Relief,12.22,4.09
+P0003,Panadol Extra Box,Pain Relief,13.26,4.28
+P0004,Panadol Advance Pack,Pain Relief,17.36,6.69
+P0005,Panadol Advance Bottle,Pain Relief,17.71,8.16
+P0006,Panadol Advance Box,Pain Relief,16.39,7.6
+P0007,Aspirin 100mg Pack,Pain Relief,7.79,2.97
+P0008,Aspirin 100mg Bottle,Pain Relief,8.19,3.2
+P0009,Aspirin 100mg Box,Pain Relief,7.35,2.95
+P0010,Voltaren Emulgel 50g Pack,Pain Relief,42.35,17.28
+P0011,Voltaren Emulgel 50g Bottle,Pain Relief,52.44,19.04
+P0012,Voltaren Emulgel 50g Box,Pain Relief,49.02,20.53
+P0013,Brufen 400mg Pack,Pain Relief,22.77,9.57
+P0014,Brufen 400mg Bottle,Pain Relief,22.69,8.06
+P0015,Brufen 400mg Box,Pain Relief,21.27,8.36
+P0016,Vicks VapoRub 50g Pack,Cold & Flu,17.61,6.3
+P0017,Vicks VapoRub 50g Bottle,Cold & Flu,15.25,5.72
+P0018,Vicks VapoRub 50g Box,Cold & Flu,14.93,5.79
+P0019,NeoCitran Hot Drink Pack,Cold & Flu,25.71,10.2
+P0020,NeoCitran Hot Drink Bottle,Cold & Flu,20.19,10.78
+P0021,NeoCitran Hot Drink Box,Cold & Flu,23.29,10.17
+P0022,Otrivin Nasal Spray Pack,Cold & Flu,30.0,11.92
+P0023,Otrivin Nasal Spray Bottle,Cold & Flu,23.25,10.97
+P0024,Otrivin Nasal Spray Box,Cold & Flu,24.5,11.45
+P0025,Centrum Multivitamins Pack,Vitamins,111.64,36.67
+P0026,Centrum Multivitamins Bottle,Vitamins,113.9,38.63
+P0027,Centrum Multivitamins Box,Vitamins,109.63,45.57
+P0028,Redoxon Vitamin C 1000mg Pack,Vitamins,30.19,13.82
+P0029,Redoxon Vitamin C 1000mg Bottle,Vitamins,34.61,11.43
+P0030,Redoxon Vitamin C 1000mg Box,Vitamins,32.33,13.7
+P0031,Omega-3 Fish Oil Pack,Vitamins,94.29,42.27
+P0032,Omega-3 Fish Oil Bottle,Vitamins,77.22,39.97
+P0033,Omega-3 Fish Oil Box,Vitamins,100.66,38.49
+P0034,Cetaphil Gentle Cleanser Pack,Skincare,80.17,28.69
+P0035,Cetaphil Gentle Cleanser Bottle,Skincare,89.73,34.93
+P0036,Cetaphil Gentle Cleanser Box,Skincare,78.58,29.78
+P0037,Neutrogena Hydro Boost Pack,Skincare,125.66,44.5
+P0038,Neutrogena Hydro Boost Bottle,Skincare,116.37,46.35
+P0039,Neutrogena Hydro Boost Box,Skincare,126.95,43.21
+P0040,Nivea Body Lotion 400ml Pack,Personal Care,41.14,13.45
+P0041,Nivea Body Lotion 400ml Bottle,Personal Care,32.87,15.61
+P0042,Nivea Body Lotion 400ml Box,Personal Care,41.15,16.15
+P0043,Sensodyne Repair & Protect Pack,Oral Care,27.92,9.97
+P0044,Sensodyne Repair & Protect Bottle,Oral Care,30.13,12.93
+P0045,Sensodyne Repair & Protect Box,Oral Care,31.7,12.69
+P0046,Savlon Antiseptic 100ml Pack,First Aid,20.85,8.32
+P0047,Savlon Antiseptic 100ml Bottle,First Aid,18.22,8.28
+P0048,Savlon Antiseptic 100ml Box,First Aid,18.34,6.51
+P0049,Band-Aid Assorted Pack,First Aid,11.89,4.52
+P0050,Band-Aid Assorted Bottle,First Aid,11.37,5.69
+P0051,Band-Aid Assorted Box,First Aid,13.65,5.7
+P0052,Clobetasol Cream 0.05% 30g Pack,Dermatology,104.0,38.09
+P0053,Clobetasol Cream 0.05% 30g Bottle,Dermatology,113.11,44.32
+P0054,Clobetasol Cream 0.05% 30g Box,Dermatology,111.97,45.44
+P0055,Mometasone Furoate 0.1% 15g Pack,Dermatology,106.37,47.37
+P0056,Mometasone Furoate 0.1% 15g Bottle,Dermatology,104.79,43.65
+P0057,Mometasone Furoate 0.1% 15g Box,Dermatology,121.72,41.28
+P0058,Refresh Tears Eye Drops Pack,Eye Care,42.51,17.77
+P0059,Refresh Tears Eye Drops Bottle,Eye Care,45.02,15.26
+P0060,Refresh Tears Eye Drops Box,Eye Care,45.53,17.84
+P0061,Earol Ear Drops Pack,Ear Care,20.01,9.51
+P0062,Earol Ear Drops Bottle,Ear Care,25.88,10.47
+P0063,Earol Ear Drops Box,Ear Care,21.26,9.41
+P0064,Gaviscon 200ml Pack,Gastrointestinal,53.15,16.96
+P0065,Gaviscon 200ml Bottle,Gastrointestinal,50.56,17.49
+P0066,Gaviscon 200ml Box,Gastrointestinal,53.76,17.11
+P0067,Imodium 2mg Pack,Gastrointestinal,31.47,10.01
+P0068,Imodium 2mg Bottle,Gastrointestinal,30.04,11.79
+P0069,Imodium 2mg Box,Gastrointestinal,31.48,11.17
+P0070,Johnson's Baby Oil 200ml Pack,Baby Care,39.18,15.6
+P0071,Johnson's Baby Oil 200ml Bottle,Baby Care,36.81,15.63
+P0072,Johnson's Baby Oil 200ml Box,Baby Care,37.3,14.41
+P0073,Pampers Baby Dry Pack,Baby Care,121.89,53.75
+P0074,Pampers Baby Dry Bottle,Baby Care,142.89,55.94
+P0075,Pampers Baby Dry Box,Baby Care,125.75,48.65
+P0076,Duphaston 10mg Pack,Women's Health,79.79,27.91
+P0077,Duphaston 10mg Bottle,Women's Health,78.29,34.78
+P0078,Duphaston 10mg Box,Women's Health,82.15,33.18
+P0079,Femibion Prenatal Pack,Vitamins,151.81,59.02
+P0080,Femibion Prenatal Bottle,Vitamins,184.6,63.26
+P0081,Femibion Prenatal Box,Vitamins,159.3,75.87
+P0082,Ventolin Inhaler Pack,Respiratory,202.9,83.69
+P0083,Ventolin Inhaler Bottle,Respiratory,222.78,98.52
+P0084,Ventolin Inhaler Box,Respiratory,234.11,102.91
+P0085,Symbicort Inhaler Pack,Respiratory,389.73,181.14
+P0086,Symbicort Inhaler Bottle,Respiratory,455.32,175.53
+P0087,Symbicort Inhaler Box,Respiratory,381.91,198.7
+P0088,Colgate Total Pack,Oral Care,18.99,9.34
+P0089,Colgate Total Bottle,Oral Care,18.94,7.44
+P0090,Colgate Total Box,Oral Care,19.23,7.66
+P0091,Multivitamin Gummies Kids Pack,Vitamins,61.0,24.57
+P0092,Multivitamin Gummies Kids Bottle,Vitamins,61.54,21.55
+P0093,Multivitamin Gummies Kids Box,Vitamins,54.15,21.37
+P0094,Aspirin 100mg Pack - Store Brand,Pain Relief,5.44,2.19
+P0095,Earol Ear Drops Box - Store Brand,Ear Care,13.57,6.49
+P0096,Mometasone Furoate 0.1% 15g Pack - Store Brand,Dermatology,66.15,38.18
+P0097,Femibion Prenatal Box - Store Brand,Vitamins,119.48,49.31
+P0098,Panadol Advance Pack - Store Brand,Pain Relief,11.31,5.08
+P0099,Voltaren Emulgel 50g Bottle - Store Brand,Pain Relief,37.67,11.97
+P0100,Band-Aid Assorted Box - Store Brand,First Aid,9.8,4.7
+P0101,Cetaphil Gentle Cleanser Pack - Store Brand,Skincare,49.93,21.12
+P0102,Otrivin Nasal Spray Box - Store Brand,Cold & Flu,16.97,7.96
+P0103,Otrivin Nasal Spray Box - Store Brand,Cold & Flu,17.43,7.62
+P0104,Refresh Tears Eye Drops Box - Store Brand,Eye Care,30.32,14.44
+P0105,Pampers Baby Dry Pack - Store Brand,Baby Care,75.01,42.36
+P0106,Symbicort Inhaler Bottle - Store Brand,Respiratory,284.2,134.64
+P0107,Refresh Tears Eye Drops Box - Store Brand - Store Brand,Eye Care,22.3,12.17
+P0108,Duphaston 10mg Pack - Store Brand,Women's Health,52.41,17.17
+P0109,Band-Aid Assorted Bottle - Store Brand,First Aid,9.15,4.01
+P0110,Imodium 2mg Box - Store Brand,Gastrointestinal,24.3,9.32
+P0111,Pampers Baby Dry Bottle - Store Brand,Baby Care,117.23,40.22
+P0112,Voltaren Emulgel 50g Bottle - Store Brand,Pain Relief,36.64,15.49
+P0113,Panadol Advance Bottle - Store Brand,Pain Relief,12.85,6.73
+P0114,Otrivin Nasal Spray Box - Store Brand - Store Brand,Cold & Flu,12.95,6.44
+P0115,NeoCitran Hot Drink Pack - Store Brand,Cold & Flu,16.2,8.05
+P0116,Otrivin Nasal Spray Bottle - Store Brand,Cold & Flu,19.47,7.04
+P0117,Redoxon Vitamin C 1000mg Pack - Store Brand,Vitamins,24.22,8.73
+P0118,Mometasone Furoate 0.1% 15g Pack - Store Brand,Dermatology,65.91,36.51
+P0119,Centrum Multivitamins Bottle - Store Brand,Vitamins,96.74,29.24
+P0120,Refresh Tears Eye Drops Box - Store Brand - Store Brand - Store Brand,Eye Care,16.7,8.27
+P0121,Aspirin 100mg Pack - Store Brand - Store Brand,Pain Relief,4.51,1.35
+P0122,Band-Aid Assorted Bottle - Store Brand,First Aid,8.4,4.2
+P0123,Imodium 2mg Box - Store Brand - Store Brand,Gastrointestinal,16.26,6.66
+P0124,Voltaren Emulgel 50g Bottle - Store Brand - Store Brand,Pain Relief,22.1,12.01
+P0125,Duphaston 10mg Pack - Store Brand,Women's Health,58.3,19.67
+P0126,Clobetasol Cream 0.05% 30g Box - Store Brand,Dermatology,71.37,33.7
+P0127,Pampers Baby Dry Box - Store Brand,Baby Care,99.29,40.62
+P0128,Centrum Multivitamins Bottle - Store Brand - Store Brand,Vitamins,60.6,23.24
+P0129,Pampers Baby Dry Bottle - Store Brand,Baby Care,116.72,45.87
+P0130,Symbicort Inhaler Bottle - Store Brand - Store Brand,Respiratory,189.29,102.82
+P0131,Band-Aid Assorted Bottle - Store Brand - Store Brand,First Aid,5.12,2.81
+P0132,Neutrogena Hydro Boost Pack - Store Brand,Skincare,94.82,34.27
+P0133,Otrivin Nasal Spray Box - Store Brand - Store Brand,Cold & Flu,10.63,6.27
+P0134,Symbicort Inhaler Pack - Store Brand,Respiratory,301.12,110.92
+P0135,Band-Aid Assorted Bottle - Store Brand - Store Brand,First Aid,6.97,3.46
+P0136,Panadol Advance Box - Store Brand,Pain Relief,11.22,6.07
+P0137,Femibion Prenatal Bottle - Store Brand,Vitamins,123.7,45.73
+P0138,Centrum Multivitamins Bottle - Store Brand,Vitamins,96.03,25.38
+P0139,Duphaston 10mg Bottle - Store Brand,Women's Health,66.04,24.72
+P0140,Ventolin Inhaler Bottle - Store Brand,Respiratory,148.67,69.38
+P0141,Otrivin Nasal Spray Bottle - Store Brand,Cold & Flu,15.04,7.16
+P0142,Pampers Baby Dry Pack - Store Brand - Store Brand,Baby Care,58.9,33.46
+P0143,Mometasone Furoate 0.1% 15g Pack - Store Brand - Store Brand,Dermatology,53.27,27.83
+P0144,Nivea Body Lotion 400ml Bottle - Store Brand,Personal Care,20.26,12.14
+P0145,Refresh Tears Eye Drops Box - Store Brand - Store Brand,Eye Care,19.22,11.74
+P0146,Aspirin 100mg Bottle - Store Brand,Pain Relief,5.27,2.62
+P0147,Clobetasol Cream 0.05% 30g Pack - Store Brand,Dermatology,84.16,25.23
+P0148,Redoxon Vitamin C 1000mg Pack - Store Brand - Store Brand,Vitamins,14.84,6.02
+P0149,Band-Aid Assorted Box - Store Brand,First Aid,9.12,4.59
+P0150,Symbicort Inhaler Bottle - Store Brand - Store Brand - Store Brand,Respiratory,132.36,85.42
+P0151,Aspirin 100mg Bottle - Store Brand,Pain Relief,5.41,2.31
+P0152,NeoCitran Hot Drink Pack - Store Brand - Store Brand,Cold & Flu,10.44,6.58
+P0153,Aspirin 100mg Bottle - Store Brand - Store Brand,Pain Relief,3.99,1.58
+P0154,Imodium 2mg Pack - Store Brand,Gastrointestinal,24.77,7.73
+P0155,Pampers Baby Dry Pack - Store Brand,Baby Care,73.97,32.92
+P0156,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand,Dermatology,66.9,16.49
+P0157,Mometasone Furoate 0.1% 15g Box - Store Brand,Dermatology,92.73,31.76
+P0158,Imodium 2mg Box - Store Brand,Gastrointestinal,24.02,8.14
+P0159,Panadol Extra Box - Store Brand,Pain Relief,9.53,2.71
+P0160,Sensodyne Repair & Protect Box - Store Brand,Oral Care,23.78,7.64
+P0161,Gaviscon 200ml Bottle - Store Brand,Gastrointestinal,38.03,14.62
+P0162,Johnson's Baby Oil 200ml Bottle - Store Brand,Baby Care,25.99,10.85
+P0163,Colgate Total Box - Store Brand,Oral Care,13.74,5.01
+P0164,Duphaston 10mg Box - Store Brand,Women's Health,63.2,26.75
+P0165,Otrivin Nasal Spray Box - Store Brand - Store Brand,Cold & Flu,12.66,4.79
+P0166,Mometasone Furoate 0.1% 15g Pack - Store Brand - Store Brand,Dermatology,48.98,28.58
+P0167,Pampers Baby Dry Pack - Store Brand,Baby Care,82.23,33.7
+P0168,Vicks VapoRub 50g Bottle - Store Brand,Cold & Flu,10.43,3.83
+P0169,Ventolin Inhaler Box - Store Brand,Respiratory,190.89,68.46
+P0170,Pampers Baby Dry Pack - Store Brand - Store Brand,Baby Care,55.48,21.48
+P0171,Earol Ear Drops Bottle - Store Brand,Ear Care,21.35,8.39
+P0172,Imodium 2mg Pack - Store Brand - Store Brand,Gastrointestinal,17.36,5.26
+P0173,Cetaphil Gentle Cleanser Box - Store Brand,Skincare,61.32,22.75
+P0174,Duphaston 10mg Pack - Store Brand,Women's Health,53.05,19.67
+P0175,Band-Aid Assorted Box - Store Brand - Store Brand,First Aid,7.68,3.51
+P0176,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand,Dermatology,67.66,17.3
+P0177,Mometasone Furoate 0.1% 15g Box - Store Brand,Dermatology,93.92,31.36
+P0178,Band-Aid Assorted Bottle - Store Brand - Store Brand,First Aid,6.94,3.23
+P0179,Symbicort Inhaler Bottle - Store Brand - Store Brand - Store Brand,Respiratory,127.78,66.06
+P0180,Ventolin Inhaler Box - Store Brand - Store Brand,Respiratory,156.36,44.18
+P0181,Centrum Multivitamins Pack - Store Brand,Vitamins,80.12,28.79
+P0182,Nivea Body Lotion 400ml Bottle - Store Brand - Store Brand,Personal Care,16.02,7.84
+P0183,Band-Aid Assorted Box - Store Brand - Store Brand - Store Brand,First Aid,6.34,2.68
+P0184,Mometasone Furoate 0.1% 15g Box - Store Brand,Dermatology,83.84,32.45
+P0185,Femibion Prenatal Pack - Store Brand,Vitamins,107.04,48.5
+P0186,Mometasone Furoate 0.1% 15g Pack - Store Brand - Store Brand,Dermatology,44.0,25.71
+P0187,Omega-3 Fish Oil Pack - Store Brand,Vitamins,67.67,34.52
+P0188,Symbicort Inhaler Bottle - Store Brand - Store Brand - Store Brand - Store Brand,Respiratory,98.62,64.51
+P0189,Aspirin 100mg Pack - Store Brand - Store Brand - Store Brand,Pain Relief,3.71,0.98
+P0190,Band-Aid Assorted Box - Store Brand - Store Brand - Store Brand,First Aid,5.34,2.37
+P0191,Brufen 400mg Bottle - Store Brand,Pain Relief,18.55,5.14
+P0192,Clobetasol Cream 0.05% 30g Pack - Store Brand,Dermatology,71.31,32.25
+P0193,Mometasone Furoate 0.1% 15g Pack - Store Brand - Store Brand,Dermatology,41.91,29.78
+P0194,Savlon Antiseptic 100ml Bottle - Store Brand,First Aid,14.48,5.98
+P0195,Johnson's Baby Oil 200ml Bottle - Store Brand - Store Brand,Baby Care,22.0,7.36
+P0196,Brufen 400mg Box - Store Brand,Pain Relief,12.79,5.59
+P0197,Johnson's Baby Oil 200ml Bottle - Store Brand - Store Brand - Store Brand,Baby Care,17.45,5.48
+P0198,Nivea Body Lotion 400ml Bottle - Store Brand,Personal Care,23.75,12.35
+P0199,Otrivin Nasal Spray Bottle - Store Brand,Cold & Flu,14.7,7.77
+P0200,Imodium 2mg Box - Store Brand - Store Brand,Gastrointestinal,17.03,7.84
+P0201,Voltaren Emulgel 50g Bottle - Store Brand - Store Brand,Pain Relief,22.65,8.78
+P0202,Symbicort Inhaler Bottle - Store Brand - Store Brand - Store Brand - Store Brand - Store Brand,Respiratory,68.37,38.93
+P0203,Ventolin Inhaler Bottle - Store Brand,Respiratory,175.82,72.19
+P0204,Panadol Advance Bottle - Store Brand,Pain Relief,13.62,6.17
+P0205,Gaviscon 200ml Pack - Store Brand,Gastrointestinal,34.9,13.89
+P0206,Femibion Prenatal Bottle - Store Brand,Vitamins,116.71,44.02
+P0207,Aspirin 100mg Bottle - Store Brand - Store Brand,Pain Relief,3.66,1.42
+P0208,Voltaren Emulgel 50g Box - Store Brand,Pain Relief,33.07,13.81
+P0209,Omega-3 Fish Oil Pack - Store Brand - Store Brand,Vitamins,49.4,25.24
+P0210,Voltaren Emulgel 50g Bottle - Store Brand - Store Brand,Pain Relief,30.12,13.15
+P0211,Colgate Total Pack - Store Brand,Oral Care,16.12,6.75
+P0212,Mometasone Furoate 0.1% 15g Pack - Store Brand - Store Brand - Store Brand,Dermatology,27.12,24.93
+P0213,Voltaren Emulgel 50g Box - Store Brand - Store Brand,Pain Relief,23.18,9.07
+P0214,Omega-3 Fish Oil Pack - Store Brand - Store Brand,Vitamins,57.26,22.53
+P0215,Panadol Advance Box - Store Brand,Pain Relief,12.25,4.88
+P0216,Aspirin 100mg Pack - Store Brand - Store Brand,Pain Relief,4.23,1.75
+P0217,Femibion Prenatal Box - Store Brand - Store Brand,Vitamins,97.87,32.74
+P0218,Femibion Prenatal Bottle - Store Brand - Store Brand,Vitamins,93.49,34.23
+P0219,Brufen 400mg Pack - Store Brand,Pain Relief,17.43,7.31
+P0220,Panadol Advance Box - Store Brand,Pain Relief,10.03,4.78
+P0221,Otrivin Nasal Spray Box - Store Brand - Store Brand - Store Brand,Cold & Flu,9.0,4.75
+P0222,Band-Aid Assorted Bottle - Store Brand - Store Brand,First Aid,6.51,2.74
+P0223,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand - Store Brand,Dermatology,51.26,11.68
+P0224,Pampers Baby Dry Pack - Store Brand - Store Brand - Store Brand,Baby Care,34.69,15.68
+P0225,Sensodyne Repair & Protect Box - Store Brand - Store Brand,Oral Care,17.87,4.85
+P0226,Voltaren Emulgel 50g Box - Store Brand - Store Brand - Store Brand,Pain Relief,19.12,6.6
+P0227,Panadol Extra Box - Store Brand - Store Brand,Pain Relief,6.0,1.7
+P0228,Redoxon Vitamin C 1000mg Pack - Store Brand,Vitamins,21.87,10.4
+P0229,Imodium 2mg Box - Store Brand - Store Brand - Store Brand,Gastrointestinal,11.34,5.73
+P0230,Clobetasol Cream 0.05% 30g Pack - Store Brand,Dermatology,71.71,26.76
+P0231,Nivea Body Lotion 400ml Box - Store Brand,Personal Care,25.1,11.69
+P0232,Clobetasol Cream 0.05% 30g Box - Store Brand,Dermatology,86.45,32.72
+P0233,Earol Ear Drops Pack - Store Brand,Ear Care,12.02,7.3
+P0234,Earol Ear Drops Pack - Store Brand - Store Brand,Ear Care,7.54,5.43
+P0235,Pampers Baby Dry Box - Store Brand - Store Brand,Baby Care,63.28,25.29
+P0236,Band-Aid Assorted Bottle - Store Brand - Store Brand - Store Brand,First Aid,3.17,2.19
+P0237,Clobetasol Cream 0.05% 30g Box - Store Brand - Store Brand,Dermatology,57.4,21.52
+P0238,Duphaston 10mg Pack - Store Brand,Women's Health,53.14,17.1
+P0239,Omega-3 Fish Oil Pack - Store Brand - Store Brand - Store Brand,Vitamins,31.8,15.39
+P0240,Pampers Baby Dry Box - Store Brand,Baby Care,86.77,37.42
+P0241,Imodium 2mg Box - Store Brand - Store Brand,Gastrointestinal,19.07,5.81
+P0242,Johnson's Baby Oil 200ml Bottle - Store Brand - Store Brand - Store Brand,Baby Care,18.1,4.43
+P0243,Cetaphil Gentle Cleanser Box - Store Brand,Skincare,60.18,19.14
+P0244,Multivitamin Gummies Kids Bottle - Store Brand,Vitamins,50.69,18.08
+P0245,Imodium 2mg Box - Store Brand,Gastrointestinal,25.8,6.96
+P0246,Omega-3 Fish Oil Pack - Store Brand - Store Brand - Store Brand,Vitamins,33.87,15.86
+P0247,Otrivin Nasal Spray Box - Store Brand - Store Brand,Cold & Flu,14.65,5.09
+P0248,Voltaren Emulgel 50g Bottle - Store Brand - Store Brand,Pain Relief,29.1,8.61
+P0249,Duphaston 10mg Pack - Store Brand - Store Brand,Women's Health,39.95,13.72
+P0250,Redoxon Vitamin C 1000mg Bottle - Store Brand,Vitamins,21.91,8.93
+P0251,Johnson's Baby Oil 200ml Bottle - Store Brand - Store Brand - Store Brand - Store Brand,Baby Care,14.68,2.77
+P0252,Earol Ear Drops Pack - Store Brand - Store Brand - Store Brand,Ear Care,5.64,4.35
+P0253,Duphaston 10mg Pack - Store Brand - Store Brand,Women's Health,37.64,14.81
+P0254,Imodium 2mg Box - Store Brand - Store Brand - Store Brand,Gastrointestinal,11.74,4.76
+P0255,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand - Store Brand,Dermatology,55.48,13.53
+P0256,Imodium 2mg Box - Store Brand - Store Brand - Store Brand - Store Brand,Gastrointestinal,7.17,4.76
+P0257,Refresh Tears Eye Drops Pack - Store Brand,Eye Care,34.94,12.62
+P0258,Omega-3 Fish Oil Box - Store Brand,Vitamins,66.98,26.12
+P0259,NeoCitran Hot Drink Pack - Store Brand - Store Brand,Cold & Flu,13.68,6.18
+P0260,Duphaston 10mg Pack - Store Brand - Store Brand,Women's Health,38.71,15.19
+P0261,Band-Aid Assorted Pack - Store Brand,First Aid,8.42,3.53
+P0262,Otrivin Nasal Spray Box - Store Brand - Store Brand - Store Brand,Cold & Flu,10.06,3.91
+P0263,Nivea Body Lotion 400ml Bottle - Store Brand - Store Brand,Personal Care,15.13,9.96
+P0264,Redoxon Vitamin C 1000mg Pack - Store Brand,Vitamins,18.2,11.52
+P0265,NeoCitran Hot Drink Pack - Store Brand - Store Brand - Store Brand,Cold & Flu,11.11,5.02
+P0266,Symbicort Inhaler Pack - Store Brand,Respiratory,241.13,130.95
+P0267,Voltaren Emulgel 50g Bottle - Store Brand - Store Brand - Store Brand,Pain Relief,15.09,8.04
+P0268,Duphaston 10mg Pack - Store Brand - Store Brand - Store Brand,Women's Health,25.38,11.56
+P0269,Aspirin 100mg Bottle - Store Brand - Store Brand - Store Brand,Pain Relief,2.94,0.88
+P0270,Redoxon Vitamin C 1000mg Pack - Store Brand - Store Brand,Vitamins,17.5,7.41
+P0271,Imodium 2mg Box - Store Brand - Store Brand - Store Brand - Store Brand - Store Brand,Gastrointestinal,5.1,3.0
+P0272,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand - Store Brand - Store Brand,Dermatology,43.62,8.18
+P0273,Aspirin 100mg Bottle - Store Brand - Store Brand - Store Brand,Pain Relief,2.57,1.05
+P0274,Panadol Extra Pack - Store Brand,Pain Relief,10.38,4.12
+P0275,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand - Store Brand,Dermatology,55.03,12.21
+P0276,Earol Ear Drops Pack - Store Brand - Store Brand - Store Brand,Ear Care,6.32,3.75
+P0277,Redoxon Vitamin C 1000mg Pack - Store Brand,Vitamins,24.28,11.21
+P0278,Pampers Baby Dry Pack - Store Brand - Store Brand - Store Brand,Baby Care,41.06,16.22
+P0279,Cetaphil Gentle Cleanser Box - Store Brand - Store Brand,Skincare,46.89,13.22
+P0280,Clobetasol Cream 0.05% 30g Box - Store Brand - Store Brand,Dermatology,54.33,25.84
+P0281,Otrivin Nasal Spray Box - Store Brand - Store Brand - Store Brand,Cold & Flu,7.78,4.44
+P0282,Symbicort Inhaler Bottle - Store Brand - Store Brand - Store Brand - Store Brand,Respiratory,97.54,59.24
+P0283,Mometasone Furoate 0.1% 15g Pack - Store Brand,Dermatology,65.04,30.37
+P0284,Johnson's Baby Oil 200ml Box - Store Brand,Baby Care,30.04,11.32
+P0285,Voltaren Emulgel 50g Bottle - Store Brand - Store Brand - Store Brand,Pain Relief,18.88,9.9
+P0286,Femibion Prenatal Box - Store Brand - Store Brand,Vitamins,75.29,40.09
+P0287,Pampers Baby Dry Bottle - Store Brand - Store Brand,Baby Care,83.73,31.99
+P0288,Duphaston 10mg Pack - Store Brand - Store Brand,Women's Health,33.26,13.84
+P0289,Gaviscon 200ml Pack - Store Brand,Gastrointestinal,42.15,12.09
+P0290,NeoCitran Hot Drink Pack - Store Brand - Store Brand - Store Brand,Cold & Flu,8.67,4.48
+P0291,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand - Store Brand - Store Brand - Store Brand,Dermatology,34.2,6.04
+P0292,Band-Aid Assorted Bottle - Store Brand - Store Brand - Store Brand,First Aid,5.27,1.97
+P0293,Band-Aid Assorted Pack - Store Brand - Store Brand,First Aid,6.7,2.92
+P0294,Colgate Total Bottle - Store Brand,Oral Care,14.82,4.7
+P0295,Otrivin Nasal Spray Bottle - Store Brand - Store Brand,Cold & Flu,11.24,5.84
+P0296,Otrivin Nasal Spray Box - Store Brand - Store Brand - Store Brand,Cold & Flu,9.19,3.33
+P0297,Centrum Multivitamins Bottle - Store Brand - Store Brand - Store Brand,Vitamins,40.5,19.54
+P0298,Aspirin 100mg Bottle - Store Brand - Store Brand,Pain Relief,3.86,1.46
+P0299,Mometasone Furoate 0.1% 15g Pack - Store Brand - Store Brand - Store Brand - Store Brand,Dermatology,20.36,20.48
+P0300,Nivea Body Lotion 400ml Bottle - Store Brand - Store Brand - Store Brand,Personal Care,10.21,7.72
+P0301,Gaviscon 200ml Bottle - Store Brand - Store Brand,Gastrointestinal,29.59,12.19
+P0302,Voltaren Emulgel 50g Bottle - Store Brand - Store Brand,Pain Relief,23.82,11.71
+P0303,Band-Aid Assorted Box - Store Brand - Store Brand,First Aid,7.04,3.81
+P0304,Imodium 2mg Bottle - Store Brand,Gastrointestinal,25.39,8.99
+P0305,Multivitamin Gummies Kids Bottle - Store Brand,Vitamins,44.68,16.67
+P0306,Mometasone Furoate 0.1% 15g Pack - Store Brand - Store Brand - Store Brand,Dermatology,38.09,22.58
+P0307,Duphaston 10mg Pack - Store Brand - Store Brand - Store Brand,Women's Health,23.95,10.28
+P0308,Omega-3 Fish Oil Pack - Store Brand - Store Brand - Store Brand,Vitamins,44.01,18.55
+P0309,Panadol Extra Pack - Store Brand - Store Brand,Pain Relief,6.97,3.34
+P0310,Aspirin 100mg Pack - Store Brand,Pain Relief,5.69,1.8
+P0311,Pampers Baby Dry Box - Store Brand,Baby Care,77.12,29.88
+P0312,Femibion Prenatal Bottle - Store Brand - Store Brand,Vitamins,97.42,29.28
+P0313,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand,Dermatology,64.87,16.06
+P0314,Omega-3 Fish Oil Bottle - Store Brand,Vitamins,59.66,26.93
+P0315,Pampers Baby Dry Pack - Store Brand - Store Brand - Store Brand - Store Brand,Baby Care,24.97,13.03
+P0316,Clobetasol Cream 0.05% 30g Bottle - Store Brand,Dermatology,85.29,34.08
+P0317,Duphaston 10mg Pack - Store Brand - Store Brand - Store Brand,Women's Health,27.15,10.87
+P0318,Duphaston 10mg Pack - Store Brand - Store Brand - Store Brand,Women's Health,23.19,10.07
+P0319,Redoxon Vitamin C 1000mg Pack - Store Brand - Store Brand - Store Brand,Vitamins,11.47,3.68
+P0320,Brufen 400mg Box - Store Brand - Store Brand,Pain Relief,8.91,4.69
+P0321,Gaviscon 200ml Bottle - Store Brand - Store Brand,Gastrointestinal,32.0,8.97
+P0322,Pampers Baby Dry Bottle - Store Brand - Store Brand,Baby Care,75.96,37.49
+P0323,Panadol Extra Box - Store Brand - Store Brand - Store Brand,Pain Relief,4.84,1.41
+P0324,Aspirin 100mg Pack - Store Brand - Store Brand - Store Brand - Store Brand,Pain Relief,2.93,0.72
+P0325,Panadol Extra Pack - Store Brand - Store Brand - Store Brand,Pain Relief,4.52,2.61
+P0326,Band-Aid Assorted Box - Store Brand - Store Brand,First Aid,6.6,3.03
+P0327,Neutrogena Hydro Boost Box - Store Brand,Skincare,82.1,27.8
+P0328,Redoxon Vitamin C 1000mg Pack - Store Brand - Store Brand,Vitamins,11.46,7.03
+P0329,Mometasone Furoate 0.1% 15g Pack - Store Brand - Store Brand - Store Brand,Dermatology,39.37,17.6
+P0330,Nivea Body Lotion 400ml Bottle - Store Brand - Store Brand - Store Brand - Store Brand,Personal Care,8.29,4.64
+P0331,Omega-3 Fish Oil Pack - Store Brand - Store Brand - Store Brand - Store Brand,Vitamins,24.72,9.83
+P0332,Femibion Prenatal Pack - Store Brand,Vitamins,126.33,44.22
+P0333,Gaviscon 200ml Bottle - Store Brand - Store Brand - Store Brand,Gastrointestinal,24.12,6.87
+P0334,Earol Ear Drops Pack - Store Brand - Store Brand - Store Brand - Store Brand,Ear Care,4.5,3.21
+P0335,Neutrogena Hydro Boost Bottle - Store Brand,Skincare,92.63,31.49
+P0336,Panadol Advance Bottle - Store Brand - Store Brand,Pain Relief,10.78,4.91
+P0337,NeoCitran Hot Drink Pack - Store Brand - Store Brand - Store Brand,Cold & Flu,8.75,4.55
+P0338,Aspirin 100mg Bottle - Store Brand - Store Brand - Store Brand,Pain Relief,2.28,0.93
+P0339,Imodium 2mg Box - Store Brand - Store Brand,Gastrointestinal,18.61,6.36
+P0340,Aspirin 100mg Bottle - Store Brand - Store Brand,Pain Relief,3.54,1.82
+P0341,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand - Store Brand - Store Brand - Store Brand,Dermatology,31.35,6.06
+P0342,Gaviscon 200ml Bottle - Store Brand - Store Brand - Store Brand - Store Brand,Gastrointestinal,14.53,5.27
+P0343,Imodium 2mg Box - Store Brand - Store Brand - Store Brand - Store Brand,Gastrointestinal,7.49,4.36
+P0344,Redoxon Vitamin C 1000mg Pack - Store Brand - Store Brand - Store Brand - Store Brand,Vitamins,7.58,2.24
+P0345,Otrivin Nasal Spray Box - Store Brand - Store Brand - Store Brand,Cold & Flu,8.8,3.83
+P0346,Refresh Tears Eye Drops Bottle - Store Brand,Eye Care,31.36,11.22
+P0347,Refresh Tears Eye Drops Box - Store Brand - Store Brand - Store Brand,Eye Care,11.65,8.56
+P0348,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand,Dermatology,51.95,23.45
+P0349,Redoxon Vitamin C 1000mg Bottle - Store Brand - Store Brand,Vitamins,13.39,7.36
+P0350,Voltaren Emulgel 50g Bottle - Store Brand - Store Brand,Pain Relief,25.62,7.43
+P0351,Band-Aid Assorted Bottle - Store Brand,First Aid,7.3,4.77
+P0352,Earol Ear Drops Pack - Store Brand - Store Brand - Store Brand - Store Brand,Ear Care,4.63,2.84
+P0353,Duphaston 10mg Pack - Store Brand - Store Brand,Women's Health,40.23,13.62
+P0354,Band-Aid Assorted Bottle - Store Brand - Store Brand,First Aid,5.15,2.99
+P0355,Earol Ear Drops Pack - Store Brand - Store Brand - Store Brand - Store Brand,Ear Care,5.1,3.07
+P0356,Clobetasol Cream 0.05% 30g Pack - Store Brand - Store Brand - Store Brand - Store Brand,Dermatology,39.04,9.75
+P0357,Earol Ear Drops Pack - Store Brand - Store Brand - Store Brand - Store Brand - Store Brand,Ear Care,2.96,2.03
+P0358,Pampers Baby Dry Pack - Store Brand - Store Brand - Store Brand,Baby Care,33.81,13.28
+P0359,Multivitamin Gummies Kids Bottle - Store Brand,Vitamins,49.14,15.94
+P0360,Otrivin Nasal Spray Bottle - Store Brand - Store Brand - Store Brand,Cold & Flu,9.05,4.83
+P0361,Omega-3 Fish Oil Pack - Store Brand - Store Brand - Store Brand,Vitamins,34.43,19.12
+P0362,Band-Aid Assorted Bottle - Store Brand - Store Brand - Store Brand,First Aid,4.42,1.91
+P0363,Earol Ear Drops Pack - Store Brand,Ear Care,14.68,7.23
+P0364,Duphaston 10mg Pack - Store Brand - Store Brand - Store Brand - Store Brand,Women's Health,16.72,8.55
+P0365,Otrivin Nasal Spray Box - Store Brand,Cold & Flu,18.99,7.08
+P0366,Omega-3 Fish Oil Box - Store Brand - Store Brand,Vitamins,41.97,20.81
+P0367,Pampers Baby Dry Pack - Store Brand - Store Brand,Baby Care,55.6,22.07
+P0368,Sensodyne Repair & Protect Box - Store Brand - Store Brand - Store Brand,Oral Care,12.43,3.91
+P0369,Vicks VapoRub 50g Pack - Store Brand,Cold & Flu,12.65,4.62
+P0370,Johnson's Baby Oil 200ml Pack - Store Brand,Baby Care,30.82,12.47
+P0371,Clobetasol Cream 0.05% 30g Box - Store Brand - Store Brand - Store Brand,Dermatology,36.6,19.6
+P0372,Aspirin 100mg Bottle - Store Brand - Store Brand - Store Brand,Pain Relief,3.07,1.31
+P0373,Femibion Prenatal Pack - Store Brand - Store Brand,Vitamins,87.58,37.03
+P0374,Johnson's Baby Oil 200ml Box - Store Brand - Store Brand,Baby Care,24.59,7.19
+P0375,Otrivin Nasal Spray Pack - Store Brand,Cold & Flu,18.04,8.93
+P0376,Earol Ear Drops Pack - Store Brand - Store Brand - Store Brand - Store Brand,Ear Care,4.66,2.33
+P0377,Duphaston 10mg Pack - Store Brand - Store Brand,Women's Health,41.25,14.18
+P0378,Mometasone Furoate 0.1% 15g Box - Store Brand - Store Brand,Dermatology,61.32,25.92
+P0379,Nivea Body Lotion 400ml Bottle - Store Brand - Store Brand - Store Brand,Personal Care,9.62,6.43
+P0380,Clobetasol Cream 0.05% 30g Bottle - Store Brand - Store Brand,Dermatology,68.97,22.1
+P0381,Multivitamin Gummies Kids Box - Store Brand,Vitamins,41.57,15.85
+P0382,Redoxon Vitamin C 1000mg Pack - Store Brand,Vitamins,24.54,11.51
+P0383,Symbicort Inhaler Bottle - Store Brand - Store Brand - Store Brand - Store Brand - Store Brand,Respiratory,69.77,43.68
+P0384,Band-Aid Assorted Box - Store Brand - Store Brand,First Aid,7.0,3.04
+P0385,Otrivin Nasal Spray Box - Store Brand - Store Brand,Cold & Flu,13.26,5.75
+P0386,Pampers Baby Dry Pack - Store Brand - Store Brand - Store Brand,Baby Care,38.24,16.49
+P0387,Aspirin 100mg Pack - Store Brand - Store Brand - Store Brand,Pain Relief,2.82,1.02
+P0388,Band-Aid Assorted Box - Store Brand - Store Brand,First Aid,6.66,3.35
+P0389,Clobetasol Cream 0.05% 30g Bottle - Store Brand - Store Brand,Dermatology,65.23,26.36
+P0390,Femibion Prenatal Pack - Store Brand,Vitamins,112.55,40.79
+P0391,Johnson's Baby Oil 200ml Bottle - Store Brand - Store Brand,Baby Care,21.82,6.97
+P0392,Gaviscon 200ml Bottle - Store Brand - Store Brand,Gastrointestinal,25.16,9.58
+P0393,Nivea Body Lotion 400ml Bottle - Store Brand - Store Brand - Store Brand - Store Brand,Personal Care,7.31,4.3
+P0394,Femibion Prenatal Pack - Store Brand - Store Brand,Vitamins,67.82,37.99
+P0395,Omega-3 Fish Oil Pack - Store Brand - Store Brand - Store Brand - Store Brand,Vitamins,24.24,10.94
+P0396,Mometasone Furoate 0.1% 15g Box - Store Brand - Store Brand,Dermatology,66.93,19.92
+P0397,Omega-3 Fish Oil Pack - Store Brand - Store Brand - Store Brand - Store Brand - Store Brand,Vitamins,18.58,7.97
+P0398,Johnson's Baby Oil 200ml Box - Store Brand,Baby Care,30.69,9.35
+P0399,Earol Ear Drops Pack - Store Brand - Store Brand - Store Brand - Store Brand - Store Brand,Ear Care,3.83,1.44
+P0400,Neutrogena Hydro Boost Box - Store Brand,Skincare,104.48,35.1

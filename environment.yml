@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.10  # Or whatever Python version you prefer
+  - python=3.11.11  # Or whatever Python version you prefer
   - pip
   # Core App
   - dash

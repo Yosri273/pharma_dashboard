@@ -1,41 +1,14 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Pharma Analytics Hub - Main Application Package
-#
-# This file initializes the core Dash application object, loads all data,
-# registers the layout, and connects all callbacks.
-# -----------------------------------------------------------------------------
+"""App package exports.
 
-import dash
-import logging
-import sys
-import dash_bootstrap_components as dbc
+Expose ``server`` and ``TRANSFORMS_DATA`` for backward compatibility with tests
+and scripts that import these directly from ``app``. This will import the
+bootstrap module which initializes data and registers routes, but it will NOT
+start the web server process on import.
+"""
 
-# Import components from the new modular structure
-from app.layout import create_main_layout
-from app.callbacks import register_callbacks
-from etl.transforms import initialize_data
-from services.db import get_engine
+# Importing bootstrap creates the Dash app and initializes data, without
+# running the server. This preserves expected test semantics.
+from .bootstrap import app, server  # noqa: F401
+from etl.transforms import DATA as TRANSFORMS_DATA  # noqa: F401
 
-# Configure professional logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout)
-logger = logging.getLogger(__name__)
-
-# --- 1. INITIALIZE APP AND DATA ---
-logger.info("--- Starting Pharma Analytics Hub v21.1 ---")
-# Added Bootstrap Icons per original app.py
-app = dash.Dash(
-    __name__,
-    external_stylesheets=[dbc.themes.FLATLY, dbc.icons.BOOTSTRAP],
-    suppress_callback_exceptions=True
-)
-server = app.server
-app.title = "Pharma Analytics Hub"
-
-engine = get_engine()
-initialize_data(engine)
-
-# --- 2. DEFINE APP LAYOUT & REGISTER CALLBACKS ---
-app.layout = create_main_layout()
-register_callbacks(app)
-logger.info("Application ready.")
+__all__ = ["app", "server", "TRANSFORMS_DATA"]

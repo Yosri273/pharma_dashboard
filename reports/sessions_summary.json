@@ -1,0 +1,216 @@
+{
+  "generated_at": "2025-09-15T08:54:16.125075+00:00",
+  "total_sessions": 501,
+  "unique_users": 500,
+  "bounce_rate": 0.5189620758483033,
+  "pages_per_session": 8.239520958083832,
+  "avg_session_duration_seconds": 476.5568862275449,
+  "conversions": 239,
+  "sessions_by_date": [
+    {
+      "date": "2025-02-24",
+      "sessions": 17
+    },
+    {
+      "date": "2025-02-25",
+      "sessions": 14
+    },
+    {
+      "date": "2025-02-26",
+      "sessions": 11
+    },
+    {
+      "date": "2025-02-27",
+      "sessions": 17
+    },
+    {
+      "date": "2025-02-28",
+      "sessions": 9
+    },
+    {
+      "date": "2025-03-01",
+      "sessions": 10
+    },
+    {
+      "date": "2025-03-02",
+      "sessions": 13
+    },
+    {
+      "date": "2025-03-03",
+      "sessions": 20
+    },
+    {
+      "date": "2025-03-04",
+      "sessions": 9
+    },
+    {
+      "date": "2025-03-05",
+      "sessions": 14
+    },
+    {
+      "date": "2025-03-06",
+      "sessions": 11
+    },
+    {
+      "date": "2025-03-07",
+      "sessions": 14
+    },
+    {
+      "date": "2025-03-08",
+      "sessions": 7
+    },
+    {
+      "date": "2025-03-09",
+      "sessions": 13
+    },
+    {
+      "date": "2025-03-10",
+      "sessions": 10
+    },
+    {
+      "date": "2025-03-11",
+      "sessions": 17
+    },
+    {
+      "date": "2025-03-12",
+      "sessions": 13
+    },
+    {
+      "date": "2025-03-13",
+      "sessions": 18
+    },
+    {
+      "date": "2025-03-14",
+      "sessions": 15
+    },
+    {
+      "date": "2025-03-15",
+      "sessions": 14
+    },
+    {
+      "date": "2025-03-16",
+      "sessions": 12
+    },
+    {
+      "date": "2025-03-17",
+      "sessions": 17
+    },
+    {
+      "date": "2025-03-18",
+      "sessions": 20
+    },
+    {
+      "date": "2025-03-19",
+      "sessions": 16
+    },
+    {
+      "date": "2025-03-20",
+      "sessions": 14
+    },
+    {
+      "date": "2025-03-21",
+      "sessions": 10
+    },
+    {
+      "date": "2025-03-22",
+      "sessions": 18
+    },
+    {
+      "date": "2025-03-23",
+      "sessions": 24
+    },
+    {
+      "date": "2025-03-24",
+      "sessions": 12
+    },
+    {
+      "date": "2025-03-25",
+      "sessions": 20
+    },
+    {
+      "date": "2025-03-26",
+      "sessions": 18
+    },
+    {
+      "date": "2025-03-27",
+      "sessions": 11
+    },
+    {
+      "date": "2025-03-28",
+      "sessions": 16
+    },
+    {
+      "date": "2025-03-29",
+      "sessions": 11
+    },
+    {
+      "date": "2025-03-30",
+      "sessions": 15
+    },
+    {
+      "date": "2025-06-04",
+      "sessions": 1
+    }
+  ],
+  "device_breakdown": [],
+  "new_vs_returning": {
+    "new_sessions": 500,
+    "returning_sessions": 1
+  },
+  "weekly_cohorts": {
+    "2025-02-24": {
+      "base": 91,
+      "retention": [
+        {
+          "week": "2025-02-24",
+          "users": 91
+        }
+      ]
+    },
+    "2025-03-03": {
+      "base": 88,
+      "retention": [
+        {
+          "week": "2025-03-03",
+          "users": 88
+        }
+      ]
+    },
+    "2025-03-10": {
+      "base": 99,
+      "retention": [
+        {
+          "week": "2025-03-10",
+          "users": 99
+        }
+      ]
+    },
+    "2025-03-17": {
+      "base": 119,
+      "retention": [
+        {
+          "week": "2025-03-17",
+          "users": 119
+        }
+      ]
+    },
+    "2025-03-24": {
+      "base": 103,
+      "retention": [
+        {
+          "week": "2025-03-24",
+          "users": 103
+        }
+      ]
+    },
+    "2025-06-02": {
+      "base": 1,
+      "retention": [
+        {
+          "week": "2025-06-02",
+          "users": 1
+        }
+      ]
+    }
+  }
+}

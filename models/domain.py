@@ -16,3 +16,9 @@ class PharmaDashboardKPIs(BaseModel):
     total_spend: float = 0.0
     cpa: float = 0.0
     roas: float = 0.0
+    # Backwards-compatible field expected by older callers/tests
+    avg_order_value: float = 0.0
+
+
+# Backwards-compatible alias expected by some tests
+DashboardKPIs = PharmaDashboardKPIs

@@ -27,7 +27,11 @@ from services.db import get_engine
 from etl.ingest import normalize_headers
 
 # Configure professional logging for this script
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
 logger = logging.getLogger(__name__)
 
 
@@ -43,10 +47,20 @@ def bootstrap_database(engine):
         file_path = os.path.join(base_dir, config['filename'])
         try:
             df = pd.read_csv(file_path)
+
+            # Normalize headers as before
             df = normalize_headers(df, config['schema_norm'])
-            
-            # This logic for 'netsale' is now deprecated as it's handled
-            # in etl/transforms.py, but it's safe to keep for the bootstrap.
+
+            # --- FIX: Drop duplicate columns (prevents DuplicateColumnError) ---
+            if df.columns.duplicated().any():
+                logger.warning(
+                    f"  [WARNING] Duplicate columns found in {config['filename']}. "
+                    f"Dropping duplicates: {df.columns[df.columns.duplicated()].tolist()}"
+                )
+                df = df.loc[:, ~df.columns.duplicated()]
+            # --- END FIX ---
+
+            # Safe netsale calculation (legacy)
             if 'grossvalue' in df.columns and 'discountvalue' in df.columns:
                 df['netsale'] = df['grossvalue'] - df['discountvalue']
             

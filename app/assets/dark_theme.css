@@ -1,0 +1,216 @@
+body {
+	background: linear-gradient(135deg, #232526 0%, #414345 100%);
+	color: #f4f6fa;
+	font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+	font-size: 16px;
+	letter-spacing: 0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	color: #1a2332;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+.card, .dbc-card {
+	background: #232a34;
+	border-radius: 18px;
+	box-shadow: 0 4px 24px rgba(30, 41, 59, 0.08);
+	border: none;
+	transition: box-shadow 0.2s;
+}
+.card:hover, .dbc-card:hover {
+	box-shadow: 0 8px 32px rgba(30, 41, 59, 0.16);
+}
+
+.card-title, .dbc-card-title {
+	color: #2e4057;
+	font-size: 1.25rem;
+	font-weight: 600;
+}
+
+.btn, .dbc-btn {
+	border-radius: 8px;
+	font-weight: 600;
+	font-size: 1rem;
+	padding: 0.5rem 1.25rem;
+	box-shadow: 0 2px 8px rgba(30, 41, 59, 0.08);
+	transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-primary, .dbc-btn-primary {
+	background: linear-gradient(90deg, #0052cc 0%, #0077ff 100%);
+	color: #fff;
+	border: none;
+}
+.btn-secondary, .dbc-btn-secondary {
+	background: linear-gradient(90deg, #6c757d 0%, #adb5bd 100%);
+	color: #fff;
+	border: none;
+}
+.btn-info, .dbc-btn-info {
+	background: linear-gradient(90deg, #17a2b8 0%, #63e6be 100%);
+	color: #fff;
+	border: none;
+}
+.btn-success, .dbc-btn-success {
+	background: linear-gradient(90deg, #28a745 0%, #51cf66 100%);
+	color: #fff;
+	border: none;
+}
+.btn-danger, .dbc-btn-danger {
+	background: linear-gradient(90deg, #dc3545 0%, #ff6b6b 100%);
+	color: #fff;
+	border: none;
+}
+.btn-warning, .dbc-btn-warning {
+	background: linear-gradient(90deg, #ffc107 0%, #ffe066 100%);
+	color: #232526;
+	border: none;
+}
+.btn:hover, .dbc-btn:hover {
+	box-shadow: 0 4px 16px rgba(30, 41, 59, 0.16);
+	opacity: 0.95;
+}
+
+.navbar, .dbc-navbar {
+	background: linear-gradient(90deg, #232526 0%, #0052cc 100%);
+	border-radius: 0 0 18px 18px;
+	box-shadow: 0 2px 12px rgba(30, 41, 59, 0.10);
+}
+.navbar-brand, .dbc-navbar-brand {
+	color: #fff !important;
+	font-size: 1.5rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+}
+
+.dbc-tabs .nav-link.active {
+	background: linear-gradient(90deg, #0052cc 0%, #0077ff 100%);
+	color: #fff !important;
+	border-radius: 8px 8px 0 0;
+	font-weight: 600;
+}
+.dbc-tabs .nav-link {
+	color: #adb5bd;
+	font-weight: 500;
+	font-size: 1.1rem;
+	border-radius: 8px 8px 0 0;
+	margin-right: 4px;
+}
+
+.dbc-row, .dbc-col {
+	margin-bottom: 1rem;
+}
+
+.dash-table-container .dash-spreadsheet-container {
+	background: #232a34;
+	border-radius: 12px;
+	box-shadow: 0 2px 8px rgba(30, 41, 59, 0.08);
+}
+.dash-table-container .dash-header {
+	background: #232526;
+	color: #fff;
+	font-weight: 700;
+}
+.dash-table-container .dash-cell {
+	color: #f4f6fa;
+	font-size: 1rem;
+}
+
+.dbc-card-body, .card-body {
+	padding: 1rem 0.75rem;
+}
+
+.form-label, label {
+	color: #adb5bd;
+	font-weight: 500;
+	font-size: 1rem;
+}
+
+.dbc-btn-group .btn, .dbc-btn-group .dbc-btn {
+	margin-right: 0.5rem;
+}
+
+.dbc-container {
+	padding-top: 2rem;
+	padding-bottom: 2rem;
+}
+
+.dbc-row {
+	margin-left: 0;
+	margin-right: 0;
+}
+
+.dbc-col {
+	padding-left: 0.75rem;
+	padding-right: 0.75rem;
+}
+
+.dbc-card {
+	margin-bottom: 1rem;
+}
+
+.dbc-card-title {
+	margin-bottom: 0.5rem;
+	font-size: 1.05rem;
+}
+
+.dbc-card-body {
+	padding: 2rem 1.5rem;
+}
+
+.dbc-btn {
+	margin-bottom: 0.5rem;
+}
+
+.dbc-navbar {
+	margin-bottom: 2rem;
+}
+
+.dbc-tabs {
+	margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+	.dbc-card-body, .card-body {
+		padding: 0.5rem 0.25rem;
+	}
+	.dbc-container {
+		padding-top: 0.5rem;
+		padding-bottom: 0.5rem;
+	}
+}
+
+/* Predictive tab specific styling */
+.predictive-churn-content {
+	display: block;
+}
+
+/* Train Forecast button tweaks (consistent with other buttons but slightly smaller) */
+#train-forecast-btn {
+	border-radius: 8px;
+	font-size: 0.95rem;
+	padding: 0.45rem 1rem;
+	background: linear-gradient(90deg, #5a5f69 0%, #8a8f98 100%);
+	color: #fff;
+}
+
+/* Confirmation modal specific tweaks to fit dark theme */
+#confirm-forecast-modal .modal-content {
+	background: #1f2530;
+	color: #e6eefc;
+	border-radius: 12px;
+}
+#confirm-forecast-modal .modal-header, #confirm-forecast-modal .modal-footer {
+	border: none;
+	background: transparent;
+}
+
+/* Placeholder figure / alert in predictive tab */
+.predictive-placeholder {
+	background: rgba(255,255,255,0.02);
+	border-radius: 8px;
+	padding: 1rem;
+	color: #cfe8ff;
+	text-align: center;
+}

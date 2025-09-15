@@ -6,7 +6,7 @@
 # MERGED: Added APScheduler from the new version to run the alerting monitor.
 # -----------------------------------------------------------------------------
 
-from app import app, server  # Import the app and server instances from our app package (app/__init__.py)
+from app.bootstrap import app, server  # Use explicit bootstrap to avoid import-time side effects
 from apscheduler.schedulers.background import BackgroundScheduler
 from alerting.monitor import run_monitor_cycle # NEW: Import the alert monitor
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     print("Starting scheduler and web server...")
     try:
         # We use the configuration from the original app.py
-        app.run(debug=True, port=8053)
+        app.run(debug=True, port=8056)
     except (KeyboardInterrupt, SystemExit):
         print("Shutting down scheduler...")
         scheduler.shutdown()
